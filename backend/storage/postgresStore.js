@@ -248,7 +248,16 @@ async function updateJson(name, mutate) {
 }
 async function health() {
   await initializeStorage();
-  await poolFor().query('SELECT 1');
+  const res = await poolFor().query(`
+    SELECT 
+      current_database() as db, 
+      current_user as db_user, 
+      current_schema() as db_schema,
+      current_setting('search_path') as search_path,
+      (SELECT count(*)::int FROM information_schema.tables WHERE table_name = 'gvcn_documents') as gvcn_table_count,
+      (SELECT string_agg(table_schema || '.' || table_name, ', ') FROM information_schema.tables WHERE table_name = 'gvcn_documents') as gvcn_locations
+  `);
+  return res.rows[0];
 }
 async function shutdown() { if (pool) await pool.end(); }
 module.exports = { readJson, updateJson, initializeStorage, health, shutdown, mode: 'postgresql-jsonb' };

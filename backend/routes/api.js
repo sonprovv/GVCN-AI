@@ -59,8 +59,8 @@ async function routeApi(req, res, url) {
     const parts = segment(url.pathname);
     const resource = parts[1];
     if (parts.length === 2 && method === 'GET' && resource === 'health') {
-      try { await health(); return respond(res, 200, { ok: true, storage: mode, version: '2.0.0' }); }
-      catch { return respond(res, 503, { ok: false, storage: mode }); }
+      try { const info = await health(); return respond(res, 200, { ok: true, storage: mode, version: '2.0.0', db: info }); }
+      catch (e) { return respond(res, 503, { ok: false, storage: mode, error: e.message, stack: e.stack }); }
     }
     if (resource === 'cloud') {
       const code = decodeURIComponent(parts[2] || '').trim().toUpperCase();
