@@ -41,12 +41,12 @@ async function verify() {
     const statusRes = await get(`http://127.0.0.1:${testPort}/api/cloud/12A5/status`);
     console.log('GET /api/cloud/12A5/status:', statusRes.statusCode, statusRes.body);
     const roomData = JSON.parse(roomRes.body);
-    const disc = roomData.data?.disciplineRecords || [];
-    const acad = roomData.data?.academicRecords || [];
-    console.log(`Room 12A5 discipline records (${disc.length}):`, disc.map(d => ({ date: d.date, session: d.session })));
-    console.log(`Room 12A5 academic records (${acad.length}):`, acad.map(a => ({ date: a.date, session: a.session, subject: a.subject })));
+    const students = roomData.data?.students || [];
+    console.log(`Room 12A5 real students (${students.length}):`);
+    console.log(' First:', students[0]?.stt, students[0]?.fullName, students[0]?.role, students[0]?.teamId);
+    console.log(' Last :', students[students.length - 1]?.stt, students[students.length - 1]?.fullName, students[students.length - 1]?.role, students[students.length - 1]?.teamId);
 
-    if (hasMorning && hasAfternoon && hasSessFilter && disc.length >= 2 && acad.length >= 2 && statusRes.statusCode === 200) {
+    if (hasMorning && hasAfternoon && hasSessFilter && students.length === 46 && students[0]?.fullName === 'Nguyễn Thị Thái An' && statusRes.statusCode === 200) {
       console.log('>>> ALL VERIFICATION CHECKS PASSED! <<<');
     } else {
       console.error('>>> SOME CHECKS FAILED! <<<');
