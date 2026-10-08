@@ -62,57 +62,75 @@ async function routeApi(req, res, url) {
       try { await health(); return respond(res, 200, { ok: true, storage: mode, version: '2.0.0' }); }
       catch { return respond(res, 503, { ok: false, storage: mode }); }
     }
-    if (parts.length === 3 && resource === 'cloud') {
-      const code = decodeURIComponent(parts[2]).trim().toUpperCase();
+    if (resource === 'cloud') {
+      const code = decodeURIComponent(parts[2] || '').trim().toUpperCase();
       if (!code) fail(400, 'Mã lớp không hợp lệ');
-      if (method === 'GET') {
-        const rooms = await readJson('cloud_rooms').catch(() => ({}));
-        const room = rooms[code];
-        if (!room || !room.data) {
-          return respond(res, 404, { success: false, message: 'Chưa tìm thấy phòng lớp học trên đám mây' });
+
+      if (parts.length === 4 && parts[3] === 'status') {
+        if (method === 'GET') {
+          const rooms = await readJson('cloud_rooms').catch(() => ({}));
+          const room = rooms[code];
+          if (!room || !room.data) {
+            return respond(res, 200, { exists: false, updatedAt: null });
+          }
+          return respond(res, 200, {
+            exists: true,
+            updatedAt: room.updatedAt || null
+          });
         }
-        return respond(res, 200, {
-          success: true,
-          data: room.data,
-          metadata: { updatedAt: room.updatedAt || new Date().toISOString() },
-          activityLogs: room.activityLogs || []
-        });
+        fail(405, 'Phương thức không được hỗ trợ');
       }
-      if (method === 'POST') {
-        const body = await bodyJson(req);
-        if (!body || !body.data) fail(400, 'Thiếu dữ liệu lớp học');
-        const now = new Date().toISOString();
-        const role = body.role === 'monitor' ? 'monitor' : 'teacher';
-        const author = typeof body.authorName === 'string' && body.authorName.trim() ? body.authorName.trim().slice(0, 100) : (role === 'monitor' ? 'Lớp trưởng' : 'GVCN');
-        const actionSummary = typeof body.actionSummary === 'string' && body.actionSummary.trim() ? body.actionSummary.trim().slice(0, 200) : 'Cập nhật dữ liệu lớp';
 
-        const newLog = {
-          id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-          timestamp: now,
-          role,
-          author,
-          summary: actionSummary
-        };
+      if (parts.length === 3) {
+        if (method === 'GET') {
+          const rooms = await readJson('cloud_rooms').catch(() => ({}));
+          const room = rooms[code];
+          if (!room || !room.data) {
+            return respond(res, 404, { success: false, message: 'Chưa tìm thấy phòng lớp học trên đám mây' });
+          }
+          return respond(res, 200, {
+            success: true,
+            data: room.data,
+            metadata: { updatedAt: room.updatedAt || new Date().toISOString() },
+            activityLogs: room.activityLogs || []
+          });
+        }
+        if (method === 'POST') {
+          const body = await bodyJson(req);
+          if (!body || !body.data) fail(400, 'Thiếu dữ liệu lớp học');
+          const now = new Date().toISOString();
+          const role = body.role === 'monitor' ? 'monitor' : 'teacher';
+          const author = typeof body.authorName === 'string' && body.authorName.trim() ? body.authorName.trim().slice(0, 100) : (role === 'monitor' ? 'Lớp trưởng' : 'GVCN');
+          const actionSummary = typeof body.actionSummary === 'string' && body.actionSummary.trim() ? body.actionSummary.trim().slice(0, 200) : 'Cập nhật dữ liệu lớp';
 
-        const updated = await updateJson('cloud_rooms', (rooms = {}) => {
-          if (!rooms || typeof rooms !== 'object' || Array.isArray(rooms)) rooms = {};
-          const room = rooms[code] || { data: null, activityLogs: [], updatedAt: now };
-          const logs = [newLog, ...(room.activityLogs || [])].slice(0, 50);
-          rooms[code] = {
-            data: body.data,
-            activityLogs: logs,
-            updatedAt: now
+          const newLog = {
+            id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            timestamp: now,
+            role,
+            author,
+            summary: actionSummary
           };
-          return { data: rooms, result: { updatedAt: now, activityLogs: logs } };
-        });
 
-        return respond(res, 200, {
-          success: true,
-          updatedAt: updated.updatedAt,
-          activityLogs: updated.activityLogs
-        });
+          const updated = await updateJson('cloud_rooms', (rooms = {}) => {
+            if (!rooms || typeof rooms !== 'object' || Array.isArray(rooms)) rooms = {};
+            const room = rooms[code] || { data: null, activityLogs: [], updatedAt: now };
+            const logs = [newLog, ...(room.activityLogs || [])].slice(0, 50);
+            rooms[code] = {
+              data: body.data,
+              activityLogs: logs,
+              updatedAt: now
+            };
+            return { data: rooms, result: { updatedAt: now, activityLogs: logs } };
+          });
+
+          return respond(res, 200, {
+            success: true,
+            updatedAt: updated.updatedAt,
+            activityLogs: updated.activityLogs
+          });
+        }
+        fail(405, 'Phương thức không được hỗ trợ');
       }
-      fail(405, 'Phương thức không được hỗ trợ');
     }
     // Network debug — no auth required, helps diagnose DB connectivity from inside container.
     if (parts.length === 2 && method === 'GET' && resource === 'netinfo') {

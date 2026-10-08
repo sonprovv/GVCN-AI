@@ -38,13 +38,15 @@ async function verify() {
     // 3. Check cloud room API
     const roomRes = await get(`http://127.0.0.1:${testPort}/api/cloud/12A5`);
     console.log('GET /api/cloud/12A5:', roomRes.statusCode);
+    const statusRes = await get(`http://127.0.0.1:${testPort}/api/cloud/12A5/status`);
+    console.log('GET /api/cloud/12A5/status:', statusRes.statusCode, statusRes.body);
     const roomData = JSON.parse(roomRes.body);
     const disc = roomData.data?.disciplineRecords || [];
     const acad = roomData.data?.academicRecords || [];
     console.log(`Room 12A5 discipline records (${disc.length}):`, disc.map(d => ({ date: d.date, session: d.session })));
     console.log(`Room 12A5 academic records (${acad.length}):`, acad.map(a => ({ date: a.date, session: a.session, subject: a.subject })));
 
-    if (hasMorning && hasAfternoon && hasSessFilter && disc.length >= 2 && acad.length >= 2) {
+    if (hasMorning && hasAfternoon && hasSessFilter && disc.length >= 2 && acad.length >= 2 && statusRes.statusCode === 200) {
       console.log('>>> ALL VERIFICATION CHECKS PASSED! <<<');
     } else {
       console.error('>>> SOME CHECKS FAILED! <<<');

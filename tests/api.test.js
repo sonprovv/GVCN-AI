@@ -78,6 +78,7 @@ test('GVCN REST API + JSON persistence', async () => {
 
       // Cloud sync endpoints for modern UI
       assert.equal((await request('/api/cloud/TEST_ROOM')).status, 404);
+      assert.equal((await request('/api/cloud/TEST_ROOM/status')).value.exists, false);
       const cloudPost = await request('/api/cloud/TEST_ROOM', 'POST', {
         data: { className: '12A5', students: [{ id: 'hs-1', name: 'Test' }] },
         role: 'teacher',
@@ -87,6 +88,9 @@ test('GVCN REST API + JSON persistence', async () => {
       assert.equal(cloudPost.status, 200);
       assert.equal(cloudPost.value.success, true);
       assert.ok(cloudPost.value.activityLogs.length > 0);
+      const cloudStatus = await request('/api/cloud/TEST_ROOM/status');
+      assert.equal(cloudStatus.status, 200);
+      assert.equal(cloudStatus.value.exists, true);
       const cloudGet = await request('/api/cloud/TEST_ROOM');
       assert.equal(cloudGet.status, 200);
       assert.equal(cloudGet.value.data.className, '12A5');
