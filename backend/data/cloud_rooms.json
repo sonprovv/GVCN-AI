@@ -1700,6 +1700,7 @@
       ],
       "disciplineRecords": [
         {
+          "session": "morning",
           "id": "disc-rec-2026-09-25",
           "date": "2026-09-25",
           "violations": {
@@ -1722,6 +1723,27 @@
           "recordedBy": "Lớp trưởng (Nguyễn Minh Anh)",
           "createdAt": "2026-09-25T07:30:00",
           "updatedAt": "2026-09-25T07:30:00"
+        },
+        {
+          "id": "disc-12A5-2026-10-08-afternoon",
+          "className": "12A5",
+          "date": "2026-10-08",
+          "session": "afternoon",
+          "violations": {
+            "hs-07": [
+              "disc-badge"
+            ],
+            "hs-12": [
+              "disc-phone"
+            ]
+          },
+          "notes": {
+            "hs-07": "Quên đeo thẻ học sinh buổi chiều",
+            "hs-12": "Sử dụng điện thoại cuối tiết 4 buổi chiều"
+          },
+          "recordedBy": "Lớp trưởng (Nguyễn Minh Anh)",
+          "createdAt": "2026-10-08T14:30:00.000Z",
+          "updatedAt": "2026-10-08T14:30:00.000Z"
         }
       ],
       "academicCriteria": [
@@ -1770,6 +1792,7 @@
       ],
       "academicRecords": [
         {
+          "session": "morning",
           "id": "acad-rec-2026-09-25-toan",
           "date": "2026-09-25",
           "subject": "Toán",
@@ -1805,6 +1828,56 @@
           "recordedBy": "Lớp phó học tập (Trần Hoàng Nam)",
           "createdAt": "2026-09-25T08:00:00",
           "updatedAt": "2026-09-25T08:00:00"
+        },
+        {
+          "id": "acad-rec-12A5-2026-10-08-van-afternoon",
+          "className": "12A5",
+          "date": "2026-10-08",
+          "session": "afternoon",
+          "subject": "Ngữ văn",
+          "completed": {
+            "hs-01": [
+              "acad-homework",
+              "acad-textbook",
+              "acad-listen",
+              "acad-notes",
+              "acad-prep",
+              "acad-speaking"
+            ],
+            "hs-02": [
+              "acad-homework",
+              "acad-textbook",
+              "acad-listen",
+              "acad-notes",
+              "acad-speaking"
+            ],
+            "hs-03": [
+              "acad-homework",
+              "acad-textbook",
+              "acad-listen",
+              "acad-notes"
+            ],
+            "hs-04": [
+              "acad-homework",
+              "acad-textbook",
+              "acad-listen",
+              "acad-notes"
+            ],
+            "hs-05": [
+              "acad-homework",
+              "acad-textbook",
+              "acad-listen",
+              "acad-notes"
+            ]
+          },
+          "notes": {
+            "hs-01": "Soạn văn chi tiết, phát biểu diễn cảm rất hay",
+            "hs-02": "Tích cực xung phong phân tích tác phẩm",
+            "hs-08": "Chưa chuẩn bị bài mới Ngữ văn chu đáo"
+          },
+          "recordedBy": "Lớp phó học tập (Trần Hoàng Nam)",
+          "createdAt": "2026-10-08T15:00:00.000Z",
+          "updatedAt": "2026-10-08T15:00:00.000Z"
         }
       ],
       "monthlyConduct": [
@@ -1828,6 +1901,6 @@
         "summary": "Khởi tạo phòng lớp học trên đám mây"
       }
     ],
-    "updatedAt": "2026-10-08T04:18:43.854Z"
+    "updatedAt": "2026-10-08T10:19:02.086Z"
   }
 }

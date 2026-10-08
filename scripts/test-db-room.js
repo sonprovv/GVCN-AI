@@ -14,7 +14,11 @@ pool.query("SELECT payload FROM gvcn_documents WHERE name = 'cloud_rooms'")
   .then(res => {
     const payload = res.rows[0]?.payload || {};
     console.log('ROOM KEYS IN BOTKEEP DB:', Object.keys(payload));
-    console.log('ROOM 12A5 DATA IN BOTKEEP DB:', JSON.stringify(payload['12A5'], null, 2));
+    const room = payload['12A5'] || {};
+    console.log('Room properties:', Object.keys(room));
+    console.log('Class data properties:', room.data ? Object.keys(room.data) : 'no data');
+    console.log('Discipline records:', (room.data?.disciplineRecords || room.disciplineRecords)?.map(r => ({ date: r.date, session: r.session })));
+    console.log('Academic records:', (room.data?.academicRecords || room.academicRecords)?.map(r => ({ date: r.date, session: r.session, subject: r.subject })));
     pool.end();
   })
   .catch(err => {
