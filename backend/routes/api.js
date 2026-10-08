@@ -163,7 +163,8 @@ async function routeApi(req, res, url) {
     if (parts.length === 2 && method === 'GET' && resource === 'netinfo') {
       const fsSync = require('node:fs');
       const os = require('node:os');
-      const info = { hostname: os.hostname(), interfaces: os.networkInterfaces(), dbError: null };
+      const dbUrl = process.env.DATABASE_URL ? new URL(process.env.DATABASE_URL).host : 'NOT SET';
+      const info = { hostname: os.hostname(), interfaces: os.networkInterfaces(), dbHost: dbUrl, dbError: null };
       try { info.hosts = fsSync.readFileSync('/etc/hosts', 'utf8'); } catch {}
       try { info.route = fsSync.readFileSync('/proc/net/route', 'utf8'); } catch {}
       try {
@@ -290,7 +291,13 @@ async function routeApi(req, res, url) {
     return fail(404, 'API không tồn tại');
   } catch (error) {
     if (!(error instanceof ApiError)) console.error('API error:', error);
-    return respond(res, error.status || 500, { error: { code: error.status || 500, message: error.status ? error.message : 'Lỗi máy chủ' } });
+    return respond(res, error.status || 500, {
+      error: {
+        code: error.status || 500,
+        message: error.status ? error.message : `Lỗi máy chủ: ${error.message}`,
+        details: error.stack
+      }
+    });
   }
 }
 module.exports = { routeApi };
