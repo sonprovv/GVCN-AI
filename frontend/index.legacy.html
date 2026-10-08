@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0f766e" />
+  <title>GVCN 360 — Trợ Lý Số Cho Giáo Viên Chủ Nhiệm</title>
+  <link rel="stylesheet" href="/assets/styles.css" />
+</head>
+<body class="auth-checking">
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-mark">G</div>
+        <div><strong>GVCN 360</strong><span>Trợ lý số giáo viên</span></div>
+      </div>
+      <nav class="nav" id="nav">
+        <button class="nav-item active" data-page="dashboard"><span>⌂</span>Tổng quan</button>
+        <button class="nav-item" data-page="students"><span>♙</span>Học sinh</button>
+        <button class="nav-item" data-page="attendance"><span>✓</span>Chuyên cần</button>
+        <button class="nav-item" data-page="learning"><span>▤</span>Học tập</button>
+        <button class="nav-item" data-page="parents"><span>✉</span>Phụ huynh</button>
+        <button class="nav-item" data-page="reports"><span>▥</span>Báo cáo</button>
+        <button class="nav-item" data-page="assistant"><span>✦</span>Trợ lý AI</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <button class="nav-item" id="themeToggle"><span>◐</span>Đổi giao diện</button>
+        <button class="nav-item" id="logoutButton" hidden><span>⇥</span>Đăng xuất</button>
+        <div class="profile-mini">
+          <div class="avatar">VT</div>
+          <div><strong>Vũ Tiến</strong><span>Giáo viên chủ nhiệm</span></div>
+          <button class="icon-btn">⋮</button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <button class="mobile-menu icon-btn" id="mobileMenu">☰</button>
+        <div class="search-wrap">
+          <span>⌕</span>
+          <input id="globalSearch" placeholder="Tìm học sinh, tác vụ, báo cáo..." />
+          <kbd>⌘ K</kbd>
+        </div>
+        <div class="top-actions">
+          <select id="classSelect" class="class-select">
+            <option value="12A5">12A5 · 2026–2027</option>
+          </select>
+          <button class="icon-btn has-dot" title="Thông báo">♢</button>
+          <button class="avatar small">VT</button>
+        </div>
+      </header>
+
+      <section class="page active" id="page-dashboard">
+        <div class="page-head">
+          <div>
+            <p class="eyebrow">Thứ Năm, 08 tháng 10</p>
+            <h1>Chào buổi sáng, thầy Tiến 👋</h1>
+            <p class="muted" id="dashboardClassTitle">Tổng quan nhanh lớp 12A5 hôm nay.</p>
+          </div>
+          <button class="primary" data-open="quickModal">+ Tạo tác vụ</button>
+        </div>
+
+        <div class="hero-card">
+          <div>
+            <span class="hero-pill">✦ GVCN 360 AI</span>
+            <h2>Trợ lý số cho giáo viên chủ nhiệm</h2>
+            <p>Soạn nhận xét, tổng hợp lớp, nhắn phụ huynh và tạo báo cáo nhanh hơn từ cùng một nơi.</p>
+            <div class="hero-actions">
+              <button class="primary light" data-page-link="assistant">Mở trợ lý AI</button>
+              <button class="ghost light-border" data-open="quickModal">Xem tác vụ nhanh</button>
+            </div>
+          </div>
+          <div class="hero-orbit" aria-hidden="true">
+            <div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div>
+            <div class="ai-core">AI</div>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <article class="stat-card"><div class="stat-icon teal">♙</div><div><span>Sĩ số lớp</span><strong id="dashboardTotal">—</strong><small id="dashboardGender">Đang tải...</small></div></article>
+          <article class="stat-card"><div class="stat-icon blue">✓</div><div><span>Chuyên cần hôm nay</span><strong id="dashboardAttendance">—</strong><small id="dashboardAttendanceNote">Theo ngày điểm danh</small></div></article>
+          <article class="stat-card"><div class="stat-icon amber">☆</div><div><span>Điểm TB lớp</span><strong id="dashboardAverage">—</strong><small>Điểm trung bình (dữ liệu mẫu)</small></div></article>
+          <article class="stat-card"><div class="stat-icon rose">!</div><div><span>Cần quan tâm</span><strong id="dashboardAttention">—</strong><small>Học sinh cần quan tâm</small></div></article>
+        </div>
+
+        <div class="content-grid">
+          <section class="panel span-2">
+            <div class="panel-head"><div><h3>Việc cần làm</h3><p>Các đầu việc ưu tiên hôm nay</p></div><button class="text-btn" data-open="quickModal">Thêm việc</button></div>
+            <div class="task-list" id="taskList"><p class="muted">Đang tải công việc...</p></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head"><div><h3>Tác vụ nhanh</h3><p>Dùng AI để bắt đầu</p></div></div>
+            <div class="quick-grid">
+              <button class="quick" data-prompt="Soạn tin nhắn phụ huynh về lịch họp cuối tháng."><span>✉</span><div><strong>Nhắn phụ huynh</strong><small>Soạn tin lịch sự, ngắn gọn</small></div></button>
+              <button class="quick" data-prompt="Viết nhận xét cuối kỳ cho học sinh dựa trên điểm và chuyên cần."><span>✎</span><div><strong>Nhận xét học sinh</strong><small>Cá nhân hóa theo dữ liệu</small></div></button>
+              <button class="quick" data-prompt="Tạo báo cáo công tác chủ nhiệm tuần của lớp 12A5."><span>▥</span><div><strong>Tạo báo cáo</strong><small>Tổng hợp theo mẫu</small></div></button>
+              <button class="quick" data-prompt="Lập kế hoạch tiết sinh hoạt lớp chủ đề quản lý thời gian."><span>☷</span><div><strong>Kế hoạch sinh hoạt</strong><small>Gợi ý hoạt động lớp</small></div></button>
+            </div>
+          </section>
+        </div>
+
+        <div class="content-grid lower">
+          <section class="panel span-2">
+            <div class="panel-head"><div><h3>Học sinh cần lưu ý</h3><p>Cập nhật gần đây từ học tập và chuyên cần</p></div><button class="text-btn" data-page-link="students">Xem tất cả</button></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Học sinh</th><th>Tình trạng</th><th>Điểm TB</th><th>Chuyên cần</th><th>Gợi ý</th></tr></thead>
+                <tbody id="attentionTable"></tbody>
+              </table>
+            </div>
+          </section>
+          <section class="panel ai-panel-mini">
+            <div class="spark">✦</div>
+            <h3>Gợi ý từ GVCN 360 AI</h3>
+            <p>Bạn có thể sử dụng mẫu tin nhắn để trao đổi với phụ huynh về tình hình chuyên cần và học tập.</p>
+            <button class="secondary full" data-prompt="Soạn tin nhắn riêng cho phụ huynh về việc học sinh giảm chuyên cần trong tuần này.">Soạn tin ngay</button>
+          </section>
+        </div>
+      </section>
+
+      <section class="page" id="page-students">
+        <div class="page-head"><div><p class="eyebrow">Quản lý lớp</p><h1>Danh sách học sinh</h1><p class="muted">Theo dõi hồ sơ, học tập và chuyên cần. Dữ liệu được đọc/lưu trên server để chia sẻ giữa các thiết bị.</p></div><button class="primary" id="addStudentBtn">+ Thêm học sinh</button></div>
+        <section class="panel">
+          <div class="toolbar"><input id="studentSearch" class="input" placeholder="Tìm theo tên hoặc mã học sinh"><select id="studentStatusFilter" class="input"><option value="">Tất cả trạng thái</option><option>Cần hỗ trợ</option><option>Theo dõi</option><option>Ổn định</option></select></div>
+          <div class="table-wrap"><table><thead><tr><th>Học sinh</th><th>Giới tính</th><th>Điểm TB</th><th>Chuyên cần</th><th>Trạng thái</th><th></th></tr></thead><tbody id="studentTable"></tbody></table></div>
+        </section>
+      </section>
+
+      <section class="page" id="page-attendance">
+        <div class="page-head"><div><p class="eyebrow">Theo dõi hằng ngày</p><h1>Chuyên cần</h1><p class="muted">Điểm danh theo ngày và lưu trạng thái vào JSON trên server.</p></div><div class="header-tools"><label for="attendanceDate" class="muted">Ngày:</label><input class="input" type="date" id="attendanceDate" /><button class="primary" id="saveAttendance">Lưu điểm danh</button></div></div>
+        <div class="stats-grid compact"><article class="stat-card"><div><span>Có mặt</span><strong id="presentCount">—</strong></div></article><article class="stat-card"><div><span>Vắng</span><strong id="absentCount">—</strong></div></article><article class="stat-card"><div><span>Đi muộn</span><strong id="lateCount">—</strong></div></article><article class="stat-card"><div><span>Tỷ lệ</span><strong id="rateCount">—</strong></div></article></div>
+        <section class="panel"><p class="muted" id="attendanceSaveState" style="margin:0 0 10px;font-size:12px">Đang tải...</p><div id="attendanceList" class="attendance-list"></div></section>
+      </section>
+
+      <section class="page" id="page-learning">
+        <div class="page-head"><div><p class="eyebrow">Kết quả học tập</p><h1>Học tập</h1><p class="muted">Bức tranh nhanh theo môn và nhóm học lực.</p></div></div>
+        <div class="content-grid"><section class="panel span-2"><div class="panel-head"><div><h3>Điểm trung bình theo môn</h3><p>Học kỳ I</p></div></div><div id="barChart" class="bar-chart"></div></section><section class="panel"><h3>Phân bố học lực</h3><div class="donut-wrap"><div class="donut"><div><span id="learningTotal">—</span><small>học sinh</small></div></div><div class="legend" id="learningLegend"></div></div></section></div>
+      </section>
+
+      <section class="page" id="page-parents">
+        <div class="page-head"><div><p class="eyebrow">Kết nối gia đình</p><h1>Trao đổi phụ huynh</h1><p class="muted">Soạn thông báo và lưu các mẫu thường dùng.</p></div><button class="primary" data-prompt="Soạn thông báo chung cho phụ huynh lớp 12A5.">+ Soạn thông báo</button></div>
+        <div class="content-grid"><section class="panel span-2"><div class="panel-head"><div><h3>Mẫu tin nhắn</h3><p>Chọn để AI điền nội dung nhanh</p></div></div><div class="template-grid" id="templateGrid"></div></section><section class="panel"><h3>Gần đây</h3><div class="message-history" id="messageHistory"></div></section></div>
+      </section>
+
+      <section class="page" id="page-reports">
+        <div class="page-head"><div><p class="eyebrow">Tổng hợp</p><h1>Báo cáo</h1><p class="muted">Các báo cáo định kỳ của lớp chủ nhiệm.</p></div><button class="primary" data-prompt="Tạo báo cáo công tác chủ nhiệm tháng này cho lớp 12A5.">+ Tạo báo cáo</button></div>
+        <div class="report-grid" id="reportGrid"></div>
+      </section>
+
+      <section class="page" id="page-assistant">
+        <div class="assistant-layout">
+          <div class="assistant-main panel">
+            <div class="assistant-head"><div class="spark small-spark">✦</div><div><h2>GVCN 360 AI</h2><p>Trợ lý số cho công tác chủ nhiệm</p></div><span class="online">● Sẵn sàng</span></div>
+            <div class="chat" id="chat">
+              <div class="bubble ai"><strong>GVCN 360 AI</strong><p>Chào thầy Tiến. Tôi có thể hỗ trợ soạn tin phụ huynh, nhận xét học sinh, kế hoạch sinh hoạt lớp và báo cáo chủ nhiệm. Thầy muốn bắt đầu với việc gì?</p></div>
+            </div>
+            <form class="composer" id="chatForm"><textarea id="chatInput" rows="2" placeholder="Nhập yêu cầu cho trợ lý AI..."></textarea><button class="primary" type="submit">Gửi ↗</button></form>
+          </div>
+          <aside class="assistant-side">
+            <section class="panel"><h3>Gợi ý câu lệnh</h3><div class="prompt-list"><button data-prompt="Viết nhận xét ngắn gọn cho học sinh có học lực khá nhưng chuyên cần giảm.">Nhận xét học sinh cần theo dõi</button><button data-prompt="Soạn tin mời phụ huynh tham gia họp lớp vào cuối tháng.">Mời họp phụ huynh</button><button data-prompt="Lập kế hoạch sinh hoạt lớp 45 phút về kỹ năng quản lý thời gian.">Kế hoạch sinh hoạt lớp</button><button data-prompt="Tóm tắt tình hình lớp 12A5 tuần này thành báo cáo 1 trang.">Báo cáo tuần</button></div></section>
+            <section class="panel privacy-card"><strong>🔒 Dữ liệu lớp học</strong><p>Trên cloud, dữ liệu lưu trong PostgreSQL JSONB; chạy local dùng JSON. Trợ lý hiện chưa kết nối AI thật.</p></section>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="quickModal">
+    <div class="modal">
+      <div class="modal-head"><div><h3>Tạo tác vụ nhanh</h3><p>Chọn một công việc để bắt đầu.</p></div><button class="icon-btn close-modal">×</button></div>
+      <div class="quick-grid modal-quick">
+        <button class="quick" data-prompt="Soạn tin nhắn phụ huynh về lịch họp cuối tháng."><span>✉</span><div><strong>Nhắn phụ huynh</strong><small>Tạo tin nhắn lịch sự</small></div></button>
+        <button class="quick" data-prompt="Viết nhận xét cuối kỳ cho học sinh."><span>✎</span><div><strong>Nhận xét học sinh</strong><small>Gợi ý nhận xét cá nhân</small></div></button>
+        <button class="quick" data-prompt="Tạo báo cáo công tác chủ nhiệm tuần."><span>▥</span><div><strong>Tạo báo cáo</strong><small>Tổng hợp tình hình lớp</small></div></button>
+        <button class="quick" data-prompt="Lập kế hoạch tiết sinh hoạt lớp."><span>☷</span><div><strong>Kế hoạch sinh hoạt</strong><small>Thiết kế hoạt động lớp</small></div></button>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast">Đã lưu thay đổi</div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

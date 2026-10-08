@@ -1,0 +1,470 @@
+[
+  {
+    "id": "HS12A5-01",
+    "classId": "12A5",
+    "name": "Học sinh mẫu 01",
+    "gender": "Nữ",
+    "averageScore": 7.4,
+    "attendanceRate": 96,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-02",
+    "classId": "12A5",
+    "name": "Phan Đức Anh",
+    "gender": "Nam",
+    "averageScore": 7.6,
+    "attendanceRate": 95,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-03",
+    "classId": "12A5",
+    "name": "Đỗ Minh Anh",
+    "gender": "Nữ",
+    "averageScore": 9.1,
+    "attendanceRate": 98,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-04",
+    "classId": "12A5",
+    "name": "Học sinh mẫu 04",
+    "gender": "Nữ",
+    "averageScore": 7.8,
+    "attendanceRate": 99,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-05",
+    "classId": "12A5",
+    "name": "Võ Quốc Bảo",
+    "gender": "Nam",
+    "averageScore": 7.8,
+    "attendanceRate": 95,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-06",
+    "classId": "12A5",
+    "name": "Học sinh mẫu 06",
+    "gender": "Nữ",
+    "averageScore": 8.1,
+    "attendanceRate": 95,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-07",
+    "classId": "12A5",
+    "name": "Học sinh mẫu 07",
+    "gender": "Nữ",
+    "averageScore": 8.2,
+    "attendanceRate": 96,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-08",
+    "classId": "12A5",
+    "name": "Học sinh mẫu 08",
+    "gender": "Nữ",
+    "averageScore": 8.4,
+    "attendanceRate": 97,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-09",
+    "classId": "12A5",
+    "name": "Lê Quang Huy",
+    "gender": "Nam",
+    "averageScore": 7.1,
+    "attendanceRate": 93,
+    "status": "Theo dõi"
+  },
+  {
+    "id": "HS12A5-10",
+    "classId": "12A5",
+    "name": "Học sinh mẫu 10",
+    "gender": "Nữ",
+    "averageScore": 8.7,
+    "attendanceRate": 99,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-11",
+    "classId": "12A5",
+    "name": "Học sinh mẫu 11",
+    "gender": "Nữ",
+    "averageScore": 7.2,
+    "attendanceRate": 100,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-12",
+    "classId": "12A5",
+    "name": "Học sinh mẫu 12",
+    "gender": "Nữ",
+    "averageScore": 7.4,
+    "attendanceRate": 95,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-13",
+    "classId": "12A5",
+    "name": "Học sinh mẫu 13",
+    "gender": "Nữ",
+    "averageScore": 7.5,
+    "attendanceRate": 96,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-14",
+    "classId": "12A5",
+    "name": "Học sinh mẫu 14",
+    "gender": "Nữ",
+    "averageScore": 7.7,
+    "attendanceRate": 97,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-15",
+    "classId": "12A5",
+    "name": "Học sinh mẫu 15",
+    "gender": "Nữ",
+    "averageScore": 7.8,
+    "attendanceRate": 98,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-16",
+    "classId": "12A5",
+    "name": "Nguyễn Hoàng Long",
+    "gender": "Nam",
+    "averageScore": 8.0,
+    "attendanceRate": 96,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-17",
+    "classId": "12A5",
+    "name": "Học sinh mẫu 17",
+    "gender": "Nữ",
+    "averageScore": 8.1,
+    "attendanceRate": 100,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-18",
+    "classId": "12A5",
+    "name": "Nguyễn Minh Nam",
+    "gender": "Nam",
+    "averageScore": 6.2,
+    "attendanceRate": 88,
+    "status": "Cần hỗ trợ"
+  },
+  {
+    "id": "HS12A5-19",
+    "classId": "12A5",
+    "name": "Học sinh mẫu 19",
+    "gender": "Nữ",
+    "averageScore": 8.4,
+    "attendanceRate": 96,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-20",
+    "classId": "12A5",
+    "name": "Học sinh mẫu 20",
+    "gender": "Nữ",
+    "averageScore": 8.6,
+    "attendanceRate": 97,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-21",
+    "classId": "12A5",
+    "name": "Lương Ngọc Hà",
+    "gender": "Nữ",
+    "averageScore": 8.6,
+    "attendanceRate": 98,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-22",
+    "classId": "12A5",
+    "name": "Phạm Gia Hân",
+    "gender": "Nữ",
+    "averageScore": 8.8,
+    "attendanceRate": 100,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-23",
+    "classId": "12A5",
+    "name": "Học sinh mẫu 23",
+    "gender": "Nữ",
+    "averageScore": 7.4,
+    "attendanceRate": 100,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-24",
+    "classId": "12A5",
+    "name": "Học sinh mẫu 24",
+    "gender": "Nữ",
+    "averageScore": 7.5,
+    "attendanceRate": 95,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-25",
+    "classId": "12A5",
+    "name": "Học sinh mẫu 25",
+    "gender": "Nữ",
+    "averageScore": 7.7,
+    "attendanceRate": 96,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-26",
+    "classId": "12A5",
+    "name": "Học sinh mẫu 26",
+    "gender": "Nữ",
+    "averageScore": 7.8,
+    "attendanceRate": 97,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-27",
+    "classId": "12A5",
+    "name": "Học sinh mẫu 27",
+    "gender": "Nữ",
+    "averageScore": 8.0,
+    "attendanceRate": 98,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-28",
+    "classId": "12A5",
+    "name": "Học sinh mẫu 28",
+    "gender": "Nam",
+    "averageScore": 8.1,
+    "attendanceRate": 99,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-29",
+    "classId": "12A5",
+    "name": "Học sinh mẫu 29",
+    "gender": "Nam",
+    "averageScore": 8.2,
+    "attendanceRate": 100,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-30",
+    "classId": "12A5",
+    "name": "Học sinh mẫu 30",
+    "gender": "Nam",
+    "averageScore": 8.4,
+    "attendanceRate": 95,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-31",
+    "classId": "12A5",
+    "name": "Trần Thùy Linh",
+    "gender": "Nữ",
+    "averageScore": 7.4,
+    "attendanceRate": 91,
+    "status": "Theo dõi"
+  },
+  {
+    "id": "HS12A5-32",
+    "classId": "12A5",
+    "name": "Học sinh mẫu 32",
+    "gender": "Nam",
+    "averageScore": 8.7,
+    "attendanceRate": 97,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-33",
+    "classId": "12A5",
+    "name": "Học sinh mẫu 33",
+    "gender": "Nam",
+    "averageScore": 7.2,
+    "attendanceRate": 98,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-34",
+    "classId": "12A5",
+    "name": "Học sinh mẫu 34",
+    "gender": "Nam",
+    "averageScore": 7.4,
+    "attendanceRate": 99,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-35",
+    "classId": "12A5",
+    "name": "Bùi Thu Trang",
+    "gender": "Nữ",
+    "averageScore": 8.4,
+    "attendanceRate": 100,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-36",
+    "classId": "12A5",
+    "name": "Học sinh mẫu 36",
+    "gender": "Nam",
+    "averageScore": 7.7,
+    "attendanceRate": 95,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-37",
+    "classId": "12A5",
+    "name": "Học sinh mẫu 37",
+    "gender": "Nam",
+    "averageScore": 7.8,
+    "attendanceRate": 96,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-38",
+    "classId": "12A5",
+    "name": "Học sinh mẫu 38",
+    "gender": "Nam",
+    "averageScore": 8.0,
+    "attendanceRate": 97,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-39",
+    "classId": "12A5",
+    "name": "Học sinh mẫu 39",
+    "gender": "Nam",
+    "averageScore": 8.1,
+    "attendanceRate": 98,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-40",
+    "classId": "12A5",
+    "name": "Học sinh mẫu 40",
+    "gender": "Nam",
+    "averageScore": 8.2,
+    "attendanceRate": 99,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS12A5-41",
+    "classId": "12A5",
+    "name": "Học sinh mẫu 41",
+    "gender": "Nam",
+    "averageScore": 8.4,
+    "attendanceRate": 100,
+    "status": "Theo dõi"
+  },
+  {
+    "id": "HS12A5-42",
+    "classId": "12A5",
+    "name": "Học sinh mẫu 42",
+    "gender": "Nam",
+    "averageScore": 8.6,
+    "attendanceRate": 95,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS11A3-01",
+    "classId": "11A3",
+    "name": "Học sinh lớp 11A3 số 01",
+    "gender": "Nữ",
+    "averageScore": 6.7,
+    "attendanceRate": 91,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS11A3-02",
+    "classId": "11A3",
+    "name": "Học sinh lớp 11A3 số 02",
+    "gender": "Nam",
+    "averageScore": 6.9,
+    "attendanceRate": 92,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS11A3-03",
+    "classId": "11A3",
+    "name": "Học sinh lớp 11A3 số 03",
+    "gender": "Nữ",
+    "averageScore": 7.1,
+    "attendanceRate": 93,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS11A3-04",
+    "classId": "11A3",
+    "name": "Học sinh lớp 11A3 số 04",
+    "gender": "Nam",
+    "averageScore": 7.3,
+    "attendanceRate": 94,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS11A3-05",
+    "classId": "11A3",
+    "name": "Học sinh lớp 11A3 số 05",
+    "gender": "Nữ",
+    "averageScore": 7.5,
+    "attendanceRate": 95,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS11A3-06",
+    "classId": "11A3",
+    "name": "Học sinh lớp 11A3 số 06",
+    "gender": "Nam",
+    "averageScore": 7.7,
+    "attendanceRate": 96,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS11A3-07",
+    "classId": "11A3",
+    "name": "Học sinh lớp 11A3 số 07",
+    "gender": "Nữ",
+    "averageScore": 7.9,
+    "attendanceRate": 97,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS11A3-08",
+    "classId": "11A3",
+    "name": "Học sinh lớp 11A3 số 08",
+    "gender": "Nam",
+    "averageScore": 8.1,
+    "attendanceRate": 98,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS11A3-09",
+    "classId": "11A3",
+    "name": "Học sinh lớp 11A3 số 09",
+    "gender": "Nữ",
+    "averageScore": 8.3,
+    "attendanceRate": 99,
+    "status": "Ổn định"
+  },
+  {
+    "id": "HS11A3-10",
+    "classId": "11A3",
+    "name": "Học sinh lớp 11A3 số 10",
+    "gender": "Nam",
+    "averageScore": 8.5,
+    "attendanceRate": 100,
+    "status": "Ổn định"
+  }
+]

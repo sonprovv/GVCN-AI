@@ -1,0 +1,20 @@
+{
+  "name": "gvcn360-botkeep-postgres-jsonb",
+  "version": "2.0.0",
+  "private": true,
+  "description": "GVCN 360 deployable on Botkeep Node.js and PostgreSQL JSONB",
+  "type": "commonjs",
+  "main": "index.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "node --watch backend/server.js",
+    "test": "node --test tests/*.test.js",
+    "export-json": "node scripts/export-json.js"
+  },
+  "dependencies": {
+    "pg": "^8.16.3"
+  }
+}

@@ -1,0 +1,26 @@
+[
+  {
+    "id": "MS1",
+    "classId": "12A5",
+    "title": "Thông báo lịch họp PHHS",
+    "description": "Đã gửi · 40/42 đã xem (mẫu)"
+  },
+  {
+    "id": "MS2",
+    "classId": "12A5",
+    "title": "Nhắc lịch học bù",
+    "description": "Đã gửi · 38/42 đã xem (mẫu)"
+  },
+  {
+    "id": "MS3",
+    "classId": "12A5",
+    "title": "Trao đổi chuyên cần",
+    "description": "3 cuộc trao đổi riêng (mẫu)"
+  },
+  {
+    "id": "MS4",
+    "classId": "11A3",
+    "title": "Chào mừng lớp mới",
+    "description": "Dữ liệu mẫu"
+  }
+]

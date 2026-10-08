@@ -1,0 +1,56 @@
+[
+  {
+    "id": "M1",
+    "classId": "12A5",
+    "name": "Toán",
+    "average": 8.0
+  },
+  {
+    "id": "M2",
+    "classId": "12A5",
+    "name": "Ngữ văn",
+    "average": 7.7
+  },
+  {
+    "id": "M3",
+    "classId": "12A5",
+    "name": "Tiếng Anh",
+    "average": 8.4
+  },
+  {
+    "id": "M4",
+    "classId": "12A5",
+    "name": "Vật lý",
+    "average": 8.2
+  },
+  {
+    "id": "M5",
+    "classId": "12A5",
+    "name": "Hóa học",
+    "average": 7.9
+  },
+  {
+    "id": "M6",
+    "classId": "12A5",
+    "name": "Sinh học",
+    "average": 8.3
+  },
+  {
+    "id": "L1",
+    "classId": "11A3",
+    "name": "Toán",
+    "average": 7.1
+  },
+  {
+    "id": "L2",
+    "classId": "11A3",
+    "name": "Ngữ văn",
+    "average": 7.5
+  },
+  {
+    "id": "L3",
+    "classId": "11A3",
+    "name": "Tiếng Anh",
+    "average": 7.8
+  }
+]

@@ -1,0 +1,26 @@
+[
+  {
+    "id": "P1",
+    "title": "Thông báo họp phụ huynh",
+    "description": "Mời họp, thời gian, địa điểm và nội dung chính",
+    "prompt": "Soạn thông báo họp phụ huynh."
+  },
+  {
+    "id": "P2",
+    "title": "Trao đổi học tập",
+    "description": "Phản hồi kết quả và gợi ý phối hợp",
+    "prompt": "Soạn tin nhắn trao đổi kết quả học tập với phụ huynh."
+  },
+  {
+    "id": "P3",
+    "title": "Nhắc chuyên cần",
+    "description": "Trao đổi khi học sinh nghỉ hoặc đi muộn",
+    "prompt": "Soạn lời nhắn phụ huynh về chuyên cần."
+  },
+  {
+    "id": "P4",
+    "title": "Cảm ơn phụ huynh",
+    "description": "Tin nhắn ghi nhận sự đồng hành",
+    "prompt": "Soạn tin cảm ơn phụ huynh."
+  }
+]
