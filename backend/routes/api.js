@@ -11,6 +11,9 @@ function respond(res, status, body) {
 }
 async function bodyJson(req) {
   if (req.body) {
+    if (Buffer.isBuffer(req.body)) {
+      try { return JSON.parse(req.body.toString('utf8')); } catch { fail(400, 'JSON không hợp lệ'); }
+    }
     if (typeof req.body === 'object') return req.body;
     if (typeof req.body === 'string') {
       try { return JSON.parse(req.body); } catch { fail(400, 'JSON không hợp lệ'); }

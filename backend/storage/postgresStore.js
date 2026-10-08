@@ -123,9 +123,13 @@ function poolFor() {
 }
 
 async function seedValue(name) {
-  const json = JSON.parse(await fs.readFile(path.join(__dirname, '../data', `${name}.json`), 'utf8'));
-  if (name === 'classes' || process.env.SEED_DEMO_DATA === 'true') return json;
-  return Array.isArray(json) ? [] : (name === 'attendance' ? { sessions: [] } : {});
+  try {
+    const json = JSON.parse(await fs.readFile(path.join(__dirname, '../data', `${name}.json`), 'utf8'));
+    if (name === 'classes' || process.env.SEED_DEMO_DATA === 'true') return json;
+    return Array.isArray(json) ? [] : (name === 'attendance' ? { sessions: [] } : {});
+  } catch (err) {
+    return name === 'classes' ? [{ id: '12A5', name: 'Lớp 12A5' }] : (name === 'cloud_rooms' ? {} : []);
+  }
 }
 
 async function initializeStorage() {
@@ -202,14 +206,14 @@ async function initializeStorage() {
       if (!pool) throw lastError;
 
       const db = pool;
-      await db.query(`CREATE TABLE IF NOT EXISTS gvcn_documents (
+      await db.query(`CREATE TABLE IF NOT EXISTS public.gvcn_documents (
         name TEXT PRIMARY KEY,
         payload JSONB NOT NULL,
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )`);
       for (const name of ALLOWED) {
         const payload = await seedValue(name);
-        await db.query('INSERT INTO gvcn_documents(name,payload) VALUES ($1,$2::jsonb) ON CONFLICT(name) DO NOTHING', [name, JSON.stringify(payload)]);
+        await db.query('INSERT INTO public.gvcn_documents(name,payload) VALUES ($1,$2::jsonb) ON CONFLICT(name) DO NOTHING', [name, JSON.stringify(payload)]);
       }
       await db.query('SELECT 1');
     })().catch(error => { initialized = null; throw error; });
@@ -219,12 +223,29 @@ async function initializeStorage() {
 function valid(name) {
   if (!ALLOWED.has(name)) throw new Error('Unknown JSON collection');
 }
+async function ensureSchema(client) {
+  await client.query(`CREATE TABLE IF NOT EXISTS public.gvcn_documents (
+    name TEXT PRIMARY KEY,
+    payload JSONB NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`);
+}
 async function readJson(name) {
   valid(name);
   await initializeStorage();
-  const result = await poolFor().query('SELECT payload FROM gvcn_documents WHERE name=$1', [name]);
-  if (!result.rows.length) throw new Error(`Missing collection ${name}`);
-  return result.rows[0].payload;
+  const client = await poolFor().connect();
+  try {
+    await ensureSchema(client);
+    let result = await client.query('SELECT payload FROM public.gvcn_documents WHERE name=$1', [name]);
+    if (!result.rows.length) {
+      const payload = await seedValue(name);
+      await client.query('INSERT INTO public.gvcn_documents(name,payload) VALUES ($1,$2::jsonb) ON CONFLICT(name) DO NOTHING', [name, JSON.stringify(payload)]);
+      result = await client.query('SELECT payload FROM public.gvcn_documents WHERE name=$1', [name]);
+    }
+    return result.rows[0]?.payload || (name === 'cloud_rooms' ? {} : []);
+  } finally {
+    client.release();
+  }
 }
 async function updateJson(name, mutate) {
   valid(name);
@@ -232,11 +253,16 @@ async function updateJson(name, mutate) {
   const client = await poolFor().connect();
   try {
     await client.query('BEGIN');
-    // A row lock prevents two simultaneous users overwriting each other's writes.
-    const found = await client.query('SELECT payload FROM gvcn_documents WHERE name=$1 FOR UPDATE', [name]);
-    if (!found.rows.length) throw new Error(`Missing collection ${name}`);
-    const { data, result } = await mutate(found.rows[0].payload);
-    await client.query('UPDATE gvcn_documents SET payload=$2::jsonb, updated_at=NOW() WHERE name=$1', [name, JSON.stringify(data)]);
+    await ensureSchema(client);
+    let found = await client.query('SELECT payload FROM public.gvcn_documents WHERE name=$1 FOR UPDATE', [name]);
+    if (!found.rows.length) {
+      const initial = await seedValue(name);
+      await client.query('INSERT INTO public.gvcn_documents(name,payload) VALUES ($1,$2::jsonb) ON CONFLICT(name) DO NOTHING', [name, JSON.stringify(initial)]);
+      found = await client.query('SELECT payload FROM public.gvcn_documents WHERE name=$1 FOR UPDATE', [name]);
+    }
+    const currentPayload = found.rows[0]?.payload || (name === 'cloud_rooms' ? {} : []);
+    const { data, result } = await mutate(currentPayload);
+    await client.query('UPDATE public.gvcn_documents SET payload=$2::jsonb, updated_at=NOW() WHERE name=$1', [name, JSON.stringify(data)]);
     await client.query('COMMIT');
     return result;
   } catch (error) {
