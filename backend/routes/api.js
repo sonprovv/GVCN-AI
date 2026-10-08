@@ -123,6 +123,33 @@ async function routeApi(req, res, url) {
             return { data: rooms, result: { updatedAt: now, activityLogs: logs } };
           });
 
+          if (body.data && Array.isArray(body.data.students) && body.data.students.length > 0) {
+            try {
+              await updateJson('students', (allStudents = []) => {
+                if (!Array.isArray(allStudents)) allStudents = [];
+                const others = allStudents.filter(s => s.classId !== code);
+                const classStudents = body.data.students.map(s => ({
+                  id: s.id || `HS${code}-${String(s.stt).padStart(2, '0')}`,
+                  classId: code,
+                  name: s.fullName || s.name || '',
+                  gender: s.gender || 'Nam',
+                  birthDate: s.birthDate || '',
+                  teamId: s.teamId || 'team-1',
+                  role: s.role || 'Thành viên',
+                  parentName: s.parentName || '',
+                  parentRelation: s.parentRelation || 'Bố',
+                  phone: s.parentPhone || s.phone || '',
+                  email: s.parentEmail || s.email || '',
+                  notes: s.notes || '',
+                  status: s.status || 'active'
+                }));
+                return { data: [...others, ...classStudents], result: true };
+              });
+            } catch (err) {
+              console.warn('Sync to students collection error:', err.message);
+            }
+          }
+
           return respond(res, 200, {
             success: true,
             updatedAt: updated.updatedAt,
