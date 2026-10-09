@@ -1,7 +1,7 @@
 'use strict';
 const { readJson, updateJson, mode, health } = require('../storage');
 const { handleAuth, ensureAccess } = require('../auth');
-const { STATUSES, VALID_STUDENT_STATUSES, today, validDate, studentsFor, attendanceFor, dashboardFor } = require('../services/school');
+const { STATUSES, VALID_STUDENT_STATUSES, today, validDate, studentsFor, attendanceFor, dashboardFor, dutyFor } = require('../services/school');
 
 class ApiError extends Error { constructor(status, message) { super(message); this.status = status; } }
 function fail(status, message) { throw new ApiError(status, message); }
@@ -153,6 +153,32 @@ async function routeApi(req, res, url) {
             }
           }
 
+          if (body.data && Array.isArray(body.data.duty)) {
+            try {
+              await updateJson('duty', (allDuty = []) => {
+                if (!Array.isArray(allDuty)) allDuty = [];
+                const others = allDuty.filter(d => d.classId !== code);
+                const classDuty = body.data.duty.map(d => ({ ...d, classId: code }));
+                return { data: [...others, ...classDuty], result: true };
+              });
+            } catch (err) {
+              console.warn('Sync to duty collection error:', err.message);
+            }
+          }
+
+          if (body.data && Array.isArray(body.data.classTables)) {
+            try {
+              await updateJson('classTables', (allTables = []) => {
+                if (!Array.isArray(allTables)) allTables = [];
+                const others = allTables.filter(t => t.classId !== code);
+                const classTables = body.data.classTables.map(t => ({ ...t, classId: code }));
+                return { data: [...others, ...classTables], result: true };
+              });
+            } catch (err) {
+              console.warn('Sync to classTables collection error:', err.message);
+            }
+          }
+
           return respond(res, 200, {
             success: true,
             updatedAt: updated.updatedAt,
@@ -280,6 +306,210 @@ async function routeApi(req, res, url) {
         return { data: tasks, result: task };
       });
       return respond(res, 200, { data: updated });
+    }
+    if (parts.length === 2 && method === 'GET' && resource === 'duty') {
+      const classId = await classIdFrom(url);
+      const week = url.searchParams.get('week');
+      const list = await dutyFor(classId, week);
+      return respond(res, 200, { data: list, total: list.length });
+    }
+    if (parts.length === 3 && parts[2] === 'auto-schedule' && method === 'POST' && resource === 'duty') {
+      const body = await bodyJson(req);
+      const classId = assertString(body.classId, 'Lớp');
+      const week = Number(body.week) || 4;
+      const students = await studentsFor(classId);
+      const classTables = await readJson('classTables').catch(() => []);
+      const days = [
+        { dayOfWeek: 'Thứ Hai', session: 'morning', sessionName: 'Buổi Sáng', timeRange: '06:45 – 11:30', notes: 'Trực nhật buổi sáng đầu tuần, quét lớp, kê bàn ghế ngay ngắn.' },
+        { dayOfWeek: 'Thứ Ba', session: 'morning', sessionName: 'Buổi Sáng', timeRange: '06:45 – 11:30', notes: 'Trực nhật buổi sáng, lau bảng sạch sẽ.' },
+        { dayOfWeek: 'Thứ Tư', session: 'morning', sessionName: 'Buổi Sáng', timeRange: '06:45 – 11:30', notes: 'Trực nhật ca sáng thứ 4, lau sạch cả bậu cửa sổ.' },
+        { dayOfWeek: 'Thứ Tư', session: 'afternoon', sessionName: 'Buổi Chiều', timeRange: '13:30 – 17:15', notes: 'Trực nhật ca chiều thứ 4 sau giờ học, đổ rác sạch.' },
+        { dayOfWeek: 'Thứ Năm', session: 'morning', sessionName: 'Buổi Sáng', timeRange: '06:45 – 11:30', notes: 'Trực nhật ca sáng thứ 5 đúng giờ, lớp thoáng mát.' },
+        { dayOfWeek: 'Thứ Năm', session: 'afternoon', sessionName: 'Buổi Chiều', timeRange: '13:30 – 17:15', notes: 'Trực nhật ca chiều thứ 5 sau tiết học.' },
+        { dayOfWeek: 'Thứ Sáu', session: 'morning', sessionName: 'Buổi Sáng', timeRange: '06:45 – 11:30', notes: 'Tổng vệ sinh cuối tuần.' }
+      ];
+
+      const createdSessions = days.map((d, i) => {
+        const tableNum = ((week - 1) * 7 + i) % 12 + 1;
+        const matchedTable = Array.isArray(classTables) ? classTables.find(t => t.tableNumber === tableNum) : null;
+        let assignedStudentIds = matchedTable?.studentIds || [];
+        if (!assignedStudentIds.length && students.length) {
+          const sliceStart = ((tableNum - 1) * 4) % students.length;
+          assignedStudentIds = students.slice(sliceStart, sliceStart + 4).map(s => s.id);
+        }
+        return {
+          id: `duty-${classId}-w${week}-${d.dayOfWeek.toLowerCase().replace(/\s+/g, '')}-${d.session}`,
+          classId,
+          className: classId,
+          dayOfWeek: d.dayOfWeek,
+          weekday: d.dayOfWeek,
+          session: d.session,
+          sessionName: d.sessionName,
+          timeRange: d.timeRange,
+          tableNumber: tableNum,
+          deskId: tableNum,
+          assignedStudentIds,
+          rating: 5,
+          evaluated: false,
+          status: 'pending',
+          tasksCompleted: [],
+          notes: d.notes,
+          week,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+      });
+
+      await updateJson('duty', (allDuty = []) => {
+        if (!Array.isArray(allDuty)) allDuty = [];
+        const others = allDuty.filter(d => !(d.classId === classId && d.week === week));
+        return { data: [...others, ...createdSessions], result: createdSessions };
+      });
+
+      try {
+        await updateJson('cloud_rooms', (rooms = {}) => {
+          if (rooms[classId]?.data) {
+            const currentDuty = Array.isArray(rooms[classId].data.duty) ? rooms[classId].data.duty : [];
+            const others = currentDuty.filter(d => d.week !== week);
+            rooms[classId].data.duty = [...others, ...createdSessions];
+            rooms[classId].updatedAt = new Date().toISOString();
+          }
+          return { data: rooms, result: true };
+        });
+      } catch {}
+
+      return respond(res, 200, { success: true, data: createdSessions, message: `Đã tự động phân công trực nhật tuần ${week}` });
+    }
+    if (parts.length === 2 && method === 'POST' && resource === 'duty') {
+      const body = await bodyJson(req);
+      const classId = assertString(body.classId, 'Lớp');
+      if (Array.isArray(body.duty)) {
+        const validated = body.duty.map(d => ({
+          ...d,
+          classId,
+          id: d.id || `duty-${classId}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          updatedAt: new Date().toISOString()
+        }));
+        await updateJson('duty', (allDuty = []) => {
+          if (!Array.isArray(allDuty)) allDuty = [];
+          const others = allDuty.filter(d => d.classId !== classId);
+          return { data: [...others, ...validated], result: validated };
+        });
+        try {
+          await updateJson('cloud_rooms', (rooms = {}) => {
+            if (rooms[classId]?.data) {
+              rooms[classId].data.duty = validated;
+              rooms[classId].updatedAt = new Date().toISOString();
+            }
+            return { data: rooms, result: true };
+          });
+        } catch {}
+        return respond(res, 200, { success: true, data: validated, message: 'Đã lưu danh sách phân công trực nhật' });
+      }
+
+      const dayOfWeek = assertString(body.dayOfWeek, 'Thứ trong tuần', 50);
+      const session = body.session === 'afternoon' ? 'afternoon' : 'morning';
+      const sessionName = body.sessionName || (session === 'afternoon' ? 'Buổi Chiều' : 'Buổi Sáng');
+      const tableNumber = Number(body.tableNumber) || 1;
+      const week = Number(body.week) || 4;
+      const assignedStudentIds = Array.isArray(body.assignedStudentIds) ? body.assignedStudentIds : [];
+      const id = body.id || `duty-${classId}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      const newEntry = {
+        id,
+        classId,
+        className: classId,
+        dayOfWeek,
+        weekday: dayOfWeek,
+        session,
+        sessionName,
+        timeRange: body.timeRange || (session === 'morning' ? '06:45 – 11:30' : '13:30 – 17:15'),
+        tableNumber,
+        deskId: tableNumber,
+        assignedStudentIds,
+        rating: typeof body.rating === 'number' ? body.rating : 5,
+        evaluated: !!body.evaluated,
+        status: body.status || (body.evaluated ? 'completed' : 'pending'),
+        tasksCompleted: Array.isArray(body.tasksCompleted) ? body.tasksCompleted : [],
+        notes: typeof body.notes === 'string' ? body.notes : '',
+        week,
+        date: body.date || '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      const saved = await updateJson('duty', (allDuty = []) => {
+        if (!Array.isArray(allDuty)) allDuty = [];
+        const index = allDuty.findIndex(d => d.id === id);
+        if (index >= 0) allDuty[index] = newEntry;
+        else allDuty.push(newEntry);
+        return { data: allDuty, result: newEntry };
+      });
+
+      try {
+        await updateJson('cloud_rooms', (rooms = {}) => {
+          if (rooms[classId]?.data) {
+            const currentDuty = Array.isArray(rooms[classId].data.duty) ? rooms[classId].data.duty : [];
+            const index = currentDuty.findIndex(d => d.id === id);
+            if (index >= 0) currentDuty[index] = newEntry;
+            else currentDuty.push(newEntry);
+            rooms[classId].data.duty = currentDuty;
+            rooms[classId].updatedAt = new Date().toISOString();
+          }
+          return { data: rooms, result: true };
+        });
+      } catch {}
+
+      return respond(res, 201, { success: true, data: saved, message: 'Đã lưu phân công trực nhật' });
+    }
+    if (parts.length === 3 && ['PUT', 'PATCH'].includes(method) && resource === 'duty') {
+      const id = decodeURIComponent(parts[2]);
+      const patch = await bodyJson(req);
+      const updated = await updateJson('duty', (allDuty = []) => {
+        if (!Array.isArray(allDuty)) allDuty = [];
+        const index = allDuty.findIndex(d => d.id === id);
+        if (index < 0) fail(404, 'Không tìm thấy ca trực nhật');
+        allDuty[index] = { ...allDuty[index], ...patch, updatedAt: new Date().toISOString() };
+        return { data: allDuty, result: allDuty[index] };
+      });
+
+      if (updated.classId) {
+        try {
+          await updateJson('cloud_rooms', (rooms = {}) => {
+            if (rooms[updated.classId]?.data?.duty) {
+              const idx = rooms[updated.classId].data.duty.findIndex(d => d.id === id);
+              if (idx >= 0) rooms[updated.classId].data.duty[idx] = updated;
+              rooms[updated.classId].updatedAt = new Date().toISOString();
+            }
+            return { data: rooms, result: true };
+          });
+        } catch {}
+      }
+      return respond(res, 200, { success: true, data: updated, message: 'Đã cập nhật ca trực nhật' });
+    }
+    if (parts.length === 3 && method === 'DELETE' && resource === 'duty') {
+      const id = decodeURIComponent(parts[2]);
+      let removedClassId = null;
+      const removed = await updateJson('duty', (allDuty = []) => {
+        if (!Array.isArray(allDuty)) allDuty = [];
+        const index = allDuty.findIndex(d => d.id === id);
+        if (index < 0) fail(404, 'Không tìm thấy ca trực nhật');
+        const [del] = allDuty.splice(index, 1);
+        removedClassId = del.classId;
+        return { data: allDuty, result: del };
+      });
+
+      if (removedClassId) {
+        try {
+          await updateJson('cloud_rooms', (rooms = {}) => {
+            if (rooms[removedClassId]?.data?.duty) {
+              rooms[removedClassId].data.duty = rooms[removedClassId].data.duty.filter(d => d.id !== id);
+              rooms[removedClassId].updatedAt = new Date().toISOString();
+            }
+            return { data: rooms, result: true };
+          });
+        } catch {}
+      }
+      return respond(res, 200, { success: true, data: removed, message: 'Đã xóa ca trực nhật' });
     }
     if (parts.length === 3 && method === 'POST' && resource === 'assistant' && parts[2] === 'chat') {
       const input = await bodyJson(req);

@@ -25,13 +25,33 @@ async function dashboardFor(classId, date = today()) {
   const [students, attendance, allTasks] = await Promise.all([studentsFor(classId), attendanceFor(classId, date), readJson('tasks')]);
   const male = students.filter(s => s.gender === 'Nam').length;
   const female = students.filter(s => s.gender === 'Nữ').length;
-  const avg = students.length ? round1(students.reduce((sum, s) => sum + s.averageScore, 0) / students.length) : 0;
+  const scored = students.filter(s => typeof s.averageScore === 'number' && !Number.isNaN(s.averageScore));
+  const avg = scored.length ? round1(scored.reduce((sum, s) => sum + s.averageScore, 0) / scored.length) : 0;
   const groups = {
-    good: students.filter(s => s.averageScore >= 8.5).length,
-    fair: students.filter(s => s.averageScore >= 7 && s.averageScore < 8.5).length,
-    pass: students.filter(s => s.averageScore >= 5 && s.averageScore < 7).length,
-    support: students.filter(s => s.averageScore < 5).length
+    good: students.filter(s => typeof s.averageScore === 'number' && s.averageScore >= 8.5).length,
+    fair: students.filter(s => typeof s.averageScore === 'number' && s.averageScore >= 7 && s.averageScore < 8.5).length,
+    pass: students.filter(s => typeof s.averageScore === 'number' && s.averageScore >= 5 && s.averageScore < 7).length,
+    support: students.filter(s => typeof s.averageScore === 'number' && s.averageScore < 5).length
   };
-  return { classId, date, students: { total: students.length, male, female, averageScore: avg, attentionCount: students.filter(s => s.status !== 'Ổn định').length, attention: students.filter(s => s.status !== 'Ổn định').slice(0, 6), groups }, attendance: { ...attendance.stats, saved: attendance.saved }, tasks: allTasks.filter(t => t.classId === classId) };
+  const attentionList = students.filter(s => s.status && !['Ổn định', 'active'].includes(s.status));
+  return { classId, date, students: { total: students.length, male, female, averageScore: avg, attentionCount: attentionList.length, attention: attentionList.slice(0, 6), groups }, attendance: { ...attendance.stats, saved: attendance.saved }, tasks: allTasks.filter(t => t.classId === classId) };
 }
-module.exports = { STATUSES, VALID_STUDENT_STATUSES, today, validDate, studentsFor, attendanceFor, dashboardFor };
+
+async function dutyFor(classId, week = null) {
+  let list = await readJson('duty').catch(() => []);
+  if (!Array.isArray(list)) list = [];
+  let forClass = list.filter(d => d.classId === classId);
+  if (!forClass.length) {
+    const rooms = await readJson('cloud_rooms').catch(() => ({}));
+    if (rooms[classId]?.data?.duty && Array.isArray(rooms[classId].data.duty)) {
+      forClass = rooms[classId].data.duty.map(d => ({ ...d, classId }));
+    }
+  }
+  if (week !== null && week !== undefined && week !== '') {
+    forClass = forClass.filter(d => String(d.week) === String(week));
+  }
+  return forClass;
+}
+
+module.exports = { STATUSES, VALID_STUDENT_STATUSES, today, validDate, studentsFor, attendanceFor, dashboardFor, dutyFor };
+

@@ -16,8 +16,19 @@ test('GVCN REST API + JSON persistence', async () => {
     const { server } = require('../backend/server');
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
     const base = `http://127.0.0.1:${server.address().port}`;
+    let cookie = '';
+    if (process.env.APP_PASSWORD) {
+      const loginRes = await fetch(base + '/api/auth/login', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ password: process.env.APP_PASSWORD })
+      });
+      cookie = loginRes.headers.get('set-cookie')?.split(';')[0] || '';
+    }
     const request = async (pathname, method = 'GET', body) => {
-      const res = await fetch(base + pathname, { method, headers: body === undefined ? undefined : { 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
+      const headers = { ...(cookie ? { cookie } : {}) };
+      if (body !== undefined) headers['content-type'] = 'application/json';
+      const res = await fetch(base + pathname, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
       return { status: res.status, value: await res.json() };
     };
     try {
@@ -94,6 +105,14 @@ test('GVCN REST API + JSON persistence', async () => {
       const cloudGet = await request('/api/cloud/TEST_ROOM');
       assert.equal(cloudGet.status, 200);
       assert.equal(cloudGet.value.data.className, '12A5');
+
+      // Duty endpoints
+      const autoDuty = await request('/api/duty/auto-schedule', 'POST', { classId: '12A5', week: 4 });
+      assert.equal(autoDuty.status, 200);
+      assert.equal(autoDuty.value.data.length, 7);
+      const dutyList = await request('/api/duty?classId=12A5&week=4');
+      assert.equal(dutyList.status, 200);
+      assert.equal(dutyList.value.total, 7);
 
       const removed = await request('/api/students/' + newId, 'DELETE');
       assert.equal(removed.status, 200);
