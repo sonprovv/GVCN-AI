@@ -88,6 +88,12 @@ function start() {
   const shutdown = () => server.close(() => storage.shutdown().finally(() => process.exit(0)));
   process.once('SIGTERM', shutdown);
   process.once('SIGINT', shutdown);
+  process.on('uncaughtException', (err) => {
+    console.error('[server] Uncaught exception:', err);
+  });
+  process.on('unhandledRejection', (reason) => {
+    console.error('[server] Unhandled rejection:', reason);
+  });
 
   storage.initializeStorage()
     .then(() => {

@@ -104,7 +104,7 @@ function createPool(targetHost, connectTimeoutMs) {
   const sslConfig = sslMode === 'disable' ? false
                   : sslMode === 'verify-full' ? { rejectUnauthorized: true, ca }
                   : { rejectUnauthorized: false };
-  return new Pool({
+  const p = new Pool({
     host: targetHost || process.env.PG_HOST || address.hostname,
     port: Number(process.env.PG_PORT || address.port || 5432),
     user: decodeURIComponent(address.username),
@@ -115,6 +115,10 @@ function createPool(targetHost, connectTimeoutMs) {
     idleTimeoutMillis: 30000,
     ssl: sslConfig,
   });
+  p.on('error', (err) => {
+    console.warn('[postgres] Pool client error caught:', err.message);
+  });
+  return p;
 }
 
 function poolFor() {
