@@ -23,7 +23,7 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=u
 
 let cachedBundle = null;
 async function getBundle() {
-  if (cachedBundle) return cachedBundle;
+  if (cachedBundle && process.env.NODE_ENV === 'production') return cachedBundle;
   const parts = [0, 1, 2, 3].map(i => path.resolve(FRONTEND_DIR, `assets/bundle.part${i}.js`));
   const buffers = await Promise.all(parts.map(p => fs.readFile(p)));
   cachedBundle = Buffer.concat(buffers);
@@ -36,13 +36,13 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/api' || url.pathname.startsWith('/api/')) return await routeApi(req, res, url);
     if (!['GET', 'HEAD'].includes(req.method)) { res.writeHead(405); return res.end('Method Not Allowed'); }
 
-    if (url.pathname === '/assets/index-SiniHO1L.js') {
+    if (url.pathname === '/assets/index-SiniHO1L.js' || (url.pathname.endsWith('.js') && url.pathname.includes('/assets/index-'))) {
       const bundle = await getBundle();
       res.writeHead(200, {
         'Content-Type': 'text/javascript; charset=utf-8',
         'Content-Length': bundle.length,
         'X-Content-Type-Options': 'nosniff',
-        'Cache-Control': 'public, max-age=86400'
+        'Cache-Control': 'no-cache, no-store, must-revalidate'
       });
       if (req.method === 'HEAD') return res.end();
       return res.end(bundle);

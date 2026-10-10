@@ -147,36 +147,22 @@ header.sticky {
 
 /* 8. MODALS & POPUPS RESPONSIVENESS */
 @media (max-width: 640px) {
-  /* Modal backdrop and card */
-  .fixed.inset-0.z-50 .bg-white,
-  .fixed.inset-0.z-60 .bg-white,
-  [role="dialog"] {
+  /* Modal card (only direct dialog card, never inner children) */
+  .fixed.inset-0.z-50 > .bg-white,
+  .fixed.inset-0.z-60 > .bg-white,
+  .fixed.inset-0 > div > .bg-white.rounded-2xl,
+  .fixed.inset-0 > div > .bg-white.rounded-xl {
     width: calc(100vw - 1rem) !important;
-    max-width: 95vw !important;
-    max-height: 90vh !important;
+    max-width: calc(100vw - 1rem) !important;
+    max-height: 92vh !important;
     margin: auto !important;
     border-radius: 1.25rem !important;
-    padding: 1rem !important;
   }
 
   /* Modal scrollable body */
-  .fixed.inset-0.z-50 .overflow-y-auto,
-  .fixed.inset-0.z-60 .overflow-y-auto {
-    max-height: calc(88vh - 110px) !important;
-  }
-
-  /* Modal footer buttons full width */
-  .fixed.inset-0.z-50 .flex.justify-end,
-  .fixed.inset-0.z-60 .flex.justify-end {
-    flex-direction: column-reverse !important;
-    gap: 0.5rem !important;
-    width: 100% !important;
-  }
-
-  .fixed.inset-0.z-50 .flex.justify-end button,
-  .fixed.inset-0.z-60 .flex.justify-end button {
-    width: 100% !important;
-    justify-content: center !important;
+  .fixed.inset-0.z-50 > .bg-white > .overflow-y-auto,
+  .fixed.inset-0.z-60 > .bg-white > .overflow-y-auto {
+    max-height: calc(90vh - 120px) !important;
   }
 }
 
