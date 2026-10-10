@@ -1,0 +1,235 @@
+/* ==========================================================================
+   GVCN 360 - MOBILE RESPONSIVE ENHANCEMENT SUITE
+   Tối ưu hóa toàn diện giao diện di động cho Giáo viên Chủ nhiệm
+   ========================================================================== */
+
+/* 1. VIEWPORT & RESET SAFEGUARDS */
+html, body {
+  max-width: 100vw !important;
+  overflow-x: hidden !important;
+  -webkit-text-size-adjust: 100% !important;
+  touch-action: manipulation;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* 2. STICKY HEADER RESPONSIVENESS */
+header.sticky {
+  max-width: 100vw !important;
+  overflow-x: hidden !important;
+}
+
+@media (max-width: 640px) {
+  header.sticky {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+    height: 3.5rem !important;
+  }
+}
+
+/* 3. MOBILE BOTTOM NAVIGATION BAR */
+.mobile-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  background: rgba(255, 255, 255, 0.96) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.08);
+  padding-top: 0.35rem;
+  padding-bottom: max(0.45rem, env(safe-area-inset-bottom, 0.45rem));
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+}
+
+@media (min-width: 768px) {
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+}
+
+.mobile-bottom-nav button {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.15s ease-in-out;
+}
+
+.mobile-bottom-nav button:active {
+  transform: scale(0.92);
+}
+
+/* 4. MAIN CONTAINER PADDING ON MOBILE */
+@media (max-width: 767px) {
+  main {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+    padding-top: 0.75rem !important;
+    padding-bottom: 5.5rem !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+}
+
+/* 5. RESPONSIVE TABLES & HORIZONTAL SCROLL */
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: thin;
+  max-width: 100% !important;
+}
+
+@media (max-width: 768px) {
+  .overflow-x-auto > table {
+    min-width: 660px !important;
+  }
+  
+  /* Tables with many columns */
+  .overflow-x-auto > table th,
+  .overflow-x-auto > table td {
+    padding-top: 0.65rem !important;
+    padding-bottom: 0.65rem !important;
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+}
+
+/* 6. ATTENDANCE (ĐIỂM DANH) MOBILE OPTIMIZATION */
+@media (max-width: 640px) {
+  /* Quick action buttons row */
+  .attendance-actions-grid,
+  [title="Đánh dấu tất cả học sinh có mặt"] {
+    font-size: 0.7rem !important;
+  }
+
+  /* Save attendance ca sáng/chiều button full width */
+  button[type="button"][title*="Lưu điểm danh"],
+  button:has(svg + span:contains("LƯU ĐIỂM DANH")),
+  button:has(span:contains("LƯU ĐIỂM DANH")) {
+    width: 100% !important;
+    justify-content: center !important;
+    padding-top: 0.75rem !important;
+    padding-bottom: 0.75rem !important;
+    font-size: 0.85rem !important;
+  }
+
+  /* Attendance student card row */
+  .divide-y > div:has(button:contains("Có mặt")) {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+}
+
+/* 7. DASHBOARD HERO BANNER & STATS CARDS */
+@media (max-width: 640px) {
+  /* Hero card banner */
+  .bg-linear-to-br,
+  [class*="from-blue-600"],
+  [class*="from-indigo-600"] {
+    border-radius: 1rem !important;
+  }
+
+  /* Quick access button grid */
+  .grid.grid-cols-2 {
+    gap: 0.5rem !important;
+  }
+
+  /* Stat cards */
+  .grid.grid-cols-2 > div {
+    padding: 0.75rem !important;
+  }
+}
+
+/* 8. MODALS & POPUPS RESPONSIVENESS */
+@media (max-width: 640px) {
+  /* Modal backdrop and card */
+  .fixed.inset-0.z-50 .bg-white,
+  .fixed.inset-0.z-60 .bg-white,
+  [role="dialog"] {
+    width: calc(100vw - 1rem) !important;
+    max-width: 95vw !important;
+    max-height: 90vh !important;
+    margin: auto !important;
+    border-radius: 1.25rem !important;
+    padding: 1rem !important;
+  }
+
+  /* Modal scrollable body */
+  .fixed.inset-0.z-50 .overflow-y-auto,
+  .fixed.inset-0.z-60 .overflow-y-auto {
+    max-height: calc(88vh - 110px) !important;
+  }
+
+  /* Modal footer buttons full width */
+  .fixed.inset-0.z-50 .flex.justify-end,
+  .fixed.inset-0.z-60 .flex.justify-end {
+    flex-direction: column-reverse !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+  }
+
+  .fixed.inset-0.z-50 .flex.justify-end button,
+  .fixed.inset-0.z-60 .flex.justify-end button {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
+/* 9. PREVENT IOS SAFARI AUTO-ZOOM ON INPUTS */
+@media (max-width: 768px) {
+  input[type="text"],
+  input[type="date"],
+  input[type="password"],
+  input[type="number"],
+  input[type="search"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* 10. SMOOTH HORIZONTAL CHIP BARS (NO SCROLLBAR) */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Modern sleek scrollbar for tables & cards */
+::-webkit-scrollbar {
+  height: 4px;
+  width: 4px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 11. SIDEBAR DRAWER RESPONSIVENESS */
+@media (max-width: 767px) {
+  aside.fixed {
+    width: min(82vw, 290px) !important;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.25) !important;
+  }
+}
+
+/* 12. TOUCH TARGET ENHANCEMENTS */
+@media (pointer: coarse) {
+  button, a {
+    min-height: 36px;
+  }
+  
+  .mobile-bottom-nav button {
+    min-height: 48px;
+  }
+}
