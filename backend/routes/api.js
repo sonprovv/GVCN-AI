@@ -126,6 +126,30 @@ async function routeApi(req, res, url) {
             return { data: rooms, result: { updatedAt: now, activityLogs: logs } };
           });
 
+          if (body.data && body.data.settings && typeof body.data.settings === 'object') {
+            try {
+              await updateJson('classes', (allClasses = []) => {
+                if (!Array.isArray(allClasses)) allClasses = [];
+                const idx = allClasses.findIndex(c => c.id === code);
+                const classInfo = {
+                  id: code,
+                  name: body.data.settings.className || code,
+                  academicYear: body.data.settings.academicYear || '2026–2027',
+                  teacher: body.data.settings.teacherName || '',
+                  school: body.data.settings.schoolName || ''
+                };
+                if (idx >= 0) {
+                  allClasses[idx] = { ...allClasses[idx], ...classInfo };
+                } else {
+                  allClasses.push(classInfo);
+                }
+                return { data: allClasses, result: true };
+              });
+            } catch (err) {
+              console.warn('Sync to classes collection error:', err.message);
+            }
+          }
+
           if (body.data && Array.isArray(body.data.students) && body.data.students.length > 0) {
             try {
               await updateJson('students', (allStudents = []) => {
