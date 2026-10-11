@@ -129,7 +129,7 @@ async function seedValue(name) {
     const dataDir = process.env.GVCN_DATA_DIR || path.join(__dirname, '../data');
     const raw = await fs.readFile(path.join(dataDir, name + '.json'), 'utf8');
     const json = JSON.parse(raw.replace(/^\uFEFF/, ''));
-    const alwaysSeed = new Set(['classes', 'teachers', 'timetables', 'teaching_sessions', 'teacher_duties', 'teacher_audit_logs']);
+    const alwaysSeed = new Set(['classes']);
     if (alwaysSeed.has(name) || process.env.SEED_DEMO_DATA === 'true') return json;
     return Array.isArray(json) ? [] : (name === 'attendance' ? { sessions: [] } : {});
   } catch (err) {
