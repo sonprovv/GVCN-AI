@@ -1,0 +1,10 @@
+[
+  {
+    "id": "log-1",
+    "action": "INIT",
+    "entity": "SYSTEM",
+    "details": "Khởi tạo hệ thống thời khóa biểu và giờ dạy giáo viên",
+    "performedBy": "Admin",
+    "createdAt": "2026-10-11T12:00:00Z"
+  }
+]

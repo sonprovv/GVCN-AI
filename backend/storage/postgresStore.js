@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 // Document-style storage in PostgreSQL: retain the old JSON payloads in durable JSONB rows.
 const fs = require('node:fs/promises');
 const path = require('node:path');
@@ -115,9 +115,7 @@ function createPool(targetHost, connectTimeoutMs) {
     idleTimeoutMillis: 30000,
     ssl: sslConfig,
   });
-  p.on('error', (err) => {
-    console.warn('[postgres] Pool client error caught:', err.message);
-  });
+  if (typeof p.on === 'function') { p.on('error', (err) => console.warn('[postgres] Pool client error:', err.message)); }
   return p;
 }
 
@@ -128,8 +126,11 @@ function poolFor() {
 
 async function seedValue(name) {
   try {
-    const json = JSON.parse(await fs.readFile(path.join(__dirname, '../data', `${name}.json`), 'utf8'));
-    if (name === 'classes' || process.env.SEED_DEMO_DATA === 'true') return json;
+    const dataDir = process.env.GVCN_DATA_DIR || path.join(__dirname, '../data');
+    const raw = await fs.readFile(path.join(dataDir, name + '.json'), 'utf8');
+    const json = JSON.parse(raw.replace(/^\uFEFF/, ''));
+    const alwaysSeed = new Set(['classes', 'teachers', 'timetables', 'teaching_sessions', 'teacher_duties', 'teacher_audit_logs']);
+    if (alwaysSeed.has(name) || process.env.SEED_DEMO_DATA === 'true') return json;
     return Array.isArray(json) ? [] : (name === 'attendance' ? { sessions: [] } : {});
   } catch (err) {
     return name === 'classes' ? [{ id: '12A5', name: 'Lớp 12A5' }] : (name === 'cloud_rooms' ? {} : []);
@@ -137,6 +138,9 @@ async function seedValue(name) {
 }
 
 async function initializeStorage() {
+  if (!process.env.DATABASE_URL) {
+    return Promise.resolve();
+  }
   if (!initialized) {
     initialized = (async () => {
       const address = new URL(process.env.DATABASE_URL);
@@ -236,6 +240,15 @@ async function ensureSchema(client) {
 }
 async function readJson(name) {
   valid(name);
+  if (!process.env.DATABASE_URL) {
+    const dataDir = process.env.GVCN_DATA_DIR || path.join(__dirname, '../data');
+    try {
+      const file = path.join(dataDir, name + ".json");
+      return JSON.parse(await fs.readFile(file, 'utf8'));
+    } catch {
+      return (name === 'cloud_rooms' ? {} : []);
+    }
+  }
   await initializeStorage();
   const client = await poolFor().connect();
   try {
@@ -253,6 +266,16 @@ async function readJson(name) {
 }
 async function updateJson(name, mutate) {
   valid(name);
+  if (!process.env.DATABASE_URL) {
+    const dataDir = process.env.GVCN_DATA_DIR || path.join(__dirname, '../data');
+    const file = path.join(dataDir, name + ".json");
+    let current;
+    try { current = JSON.parse(await fs.readFile(file, 'utf8')); }
+    catch { current = (name === 'cloud_rooms' ? {} : []); }
+    const { data, result } = await mutate(current);
+    await fs.writeFile(file, JSON.stringify(data, null, 2), 'utf8');
+    return result;
+  }
   await initializeStorage();
   const client = await poolFor().connect();
   try {
@@ -277,6 +300,7 @@ async function updateJson(name, mutate) {
   }
 }
 async function health() {
+  if (!process.env.DATABASE_URL) return { ok: true, mode: 'local-json' };
   await initializeStorage();
   const res = await poolFor().query(`
     SELECT 

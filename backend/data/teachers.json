@@ -1,0 +1,52 @@
+[
+  {
+    "id": "t1",
+    "code": "GV01",
+    "fullName": "Nguyễn Văn A",
+    "department": "Toán - Tin",
+    "subject": "Toán",
+    "homeroomClass": "10A1",
+    "isActive": true,
+    "aliases": ["A Toán", "Thầy A", "Van A"]
+  },
+  {
+    "id": "t2",
+    "code": "GV02",
+    "fullName": "Trần Thị B",
+    "department": "Ngữ văn",
+    "subject": "Ngữ văn",
+    "homeroomClass": "10A2",
+    "isActive": true,
+    "aliases": ["B Văn", "Cô B"]
+  },
+  {
+    "id": "t3",
+    "code": "GV03",
+    "fullName": "Lê Văn C",
+    "department": "Ngoại ngữ",
+    "subject": "Tiếng Anh",
+    "homeroomClass": "11B1",
+    "isActive": true,
+    "aliases": ["C Anh", "Thầy C"]
+  },
+  {
+    "id": "t4",
+    "code": "GV04",
+    "fullName": "Phạm Thị D",
+    "department": "KHTN",
+    "subject": "Vật lý",
+    "homeroomClass": "11B2",
+    "isActive": true,
+    "aliases": ["D Lý", "Cô D"]
+  },
+  {
+    "id": "t5",
+    "code": "GV05",
+    "fullName": "Hoàng Văn E",
+    "department": "KHTN",
+    "subject": "Hóa học",
+    "homeroomClass": "12C1",
+    "isActive": true,
+    "aliases": ["E Hóa", "Thầy E"]
+  }
+]

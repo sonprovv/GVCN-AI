@@ -1,6 +1,7 @@
-'use strict';
+﻿'use strict';
 const { readJson, updateJson, mode, health } = require('../storage');
 const { handleAuth, ensureAccess } = require('../auth');
+const { handleTimetableApi } = require('./timetableApi');
 const { STATUSES, VALID_STUDENT_STATUSES, today, validDate, studentsFor, attendanceFor, dashboardFor, dutyFor } = require('../services/school');
 
 class ApiError extends Error { constructor(status, message) { super(message); this.status = status; } }
@@ -61,6 +62,7 @@ async function routeApi(req, res, url) {
     const method = req.method;
     const parts = segment(url.pathname);
     const resource = parts[1];
+    if (await handleTimetableApi(req, res, url, parts, method)) return;
     if (parts.length === 2 && method === 'GET' && resource === 'health') {
       try { const info = await health(); return respond(res, 200, { ok: true, storage: mode, version: '2.0.0', db: info }); }
       catch (e) { return respond(res, 503, { ok: false, storage: mode, error: e.message, stack: e.stack }); }
