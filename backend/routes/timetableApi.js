@@ -1,4 +1,4 @@
-﻿'use strict';
+'use strict';
 
 const { readJson, updateJson } = require('../storage');
 const {
@@ -59,12 +59,32 @@ async function appendAuditLog(action, entity, details, performedBy = 'Admin') {
   }
 }
 
+/**
+ * Điều hướng API Thời khóa biểu & Giáo viên
+ * Tự động hỗ trợ cả 2 định dạng:
+ * 1. Có prefix: /api/timetable/teachers, /api/timetable/timetables, /api/timetable/sessions...
+ * 2. Gọi trực tiếp: /api/teachers, /api/timetables, /api/sessions...
+ */
 async function handleTimetableApi(req, res, url, parts, method) {
   res.req = req;
-  const resource = parts[1]; // ví dụ: 'teachers' hoặc 'timetables' hoặc 'timetable'
+
+  let routeParts = parts.slice(1); // bỏ 'api'
+  if (routeParts[0] === 'timetable') {
+    routeParts = routeParts.slice(1); // bỏ prefix 'timetable' nếu có
+  }
+
+  const resource = routeParts[0]; // 'teachers', 'timetables', 'sessions', 'duties', 'reports', 'audit-logs', 'health'
+  const sub = routeParts[1];
+
+  const TIMETABLE_RESOURCES = ['teachers', 'timetables', 'sessions', 'duties', 'reports', 'audit-logs', 'health'];
+  const isTimetableRoute = parts[1] === 'timetable' || TIMETABLE_RESOURCES.includes(resource);
+
+  if (!isTimetableRoute) {
+    return false; // Không thuộc module thời khóa biểu, để route tiếp theo xử lý
+  }
 
   // Xử lý CORS preflight
-  if (method === 'OPTIONS' && (resource === 'teachers' || resource === 'timetables' || resource === 'timetable')) {
+  if (method === 'OPTIONS') {
     const origin = req.headers.origin || '*';
     res.writeHead(204, {
       'Access-Control-Allow-Origin': origin,
@@ -77,10 +97,18 @@ async function handleTimetableApi(req, res, url, parts, method) {
     return true;
   }
 
-  // 1. MODULE GIÁO VIÊN
+  // Health check
+  if (resource === 'health') {
+    respond(res, 200, { success: true, message: 'Timetable module is active' });
+    return true;
+  }
+
+  // ==========================================
+  // 1. MODULE GIÁO VIÊN (/api/teachers hoặc /api/timetable/teachers)
+  // ==========================================
   if (resource === 'teachers') {
     // GET /api/teachers
-    if (parts.length === 2 && method === 'GET') {
+    if (routeParts.length === 1 && method === 'GET') {
       const teachers = await readJson('teachers');
       const dept = url.searchParams.get('department');
       const search = (url.searchParams.get('search') || '').trim().toLowerCase();
@@ -101,7 +129,7 @@ async function handleTimetableApi(req, res, url, parts, method) {
     }
 
     // POST /api/teachers
-    if (parts.length === 2 && method === 'POST') {
+    if (routeParts.length === 1 && method === 'POST') {
       const body = await bodyJson(req);
       const code = String(body.code || '').trim().toUpperCase();
       const fullName = String(body.fullName || '').trim();
@@ -141,7 +169,7 @@ async function handleTimetableApi(req, res, url, parts, method) {
     }
 
     // POST /api/teachers/import (TC-01)
-    if (parts.length === 3 && parts[2] === 'import' && method === 'POST') {
+    if (sub === 'import' && method === 'POST') {
       const body = await bodyJson(req);
       const rows = body.rows;
       if (!Array.isArray(rows) || rows.length === 0) {
@@ -184,17 +212,19 @@ async function handleTimetableApi(req, res, url, parts, method) {
     }
   }
 
-  // 2. MODULE THỜI KHÓA BIỂU
+  // ==========================================
+  // 2. MODULE THỜI KHÓA BIỂU (/api/timetables hoặc /api/timetable/timetables)
+  // ==========================================
   if (resource === 'timetables') {
     // GET /api/timetables
-    if (parts.length === 2 && method === 'GET') {
+    if (routeParts.length === 1 && method === 'GET') {
       const list = await readJson('timetables');
       respond(res, 200, { success: true, data: Array.isArray(list) ? list : [] });
       return true;
     }
 
     // POST /api/timetables (TC-02, TC-09)
-    if (parts.length === 2 && method === 'POST') {
+    if (routeParts.length === 1 && method === 'POST') {
       const body = await bodyJson(req);
       const code = String(body.code || '').trim();
       const name = String(body.name || '').trim();
@@ -228,11 +258,9 @@ async function handleTimetableApi(req, res, url, parts, method) {
         return { data: arr, result: newVersion };
       });
 
-      // Nếu có entries, sinh các scheduled_sessions tương ứng
       if (newVersion.entries.length > 0) {
         await updateJson('teaching_sessions', (sessions = []) => {
           const sArr = Array.isArray(sessions) ? sessions : [];
-          // Chèn các entries mới tránh trùng lặp
           return { data: sArr, result: true };
         });
       }
@@ -243,12 +271,12 @@ async function handleTimetableApi(req, res, url, parts, method) {
     }
   }
 
-  // 3. MODULE NGHIỆP VỤ GIỜ DẠY & BÁO CÁO: /api/timetable/*
-  if (resource === 'timetable') {
-    const sub = parts[2]; // 'sessions', 'duties', 'reports', 'audit-logs'
-
-    // GET /api/timetable/sessions
-    if (sub === 'sessions' && method === 'GET') {
+  // ==========================================
+  // 3. MODULE TIẾT DẠY THỰC TẾ (/api/sessions hoặc /api/timetable/sessions)
+  // ==========================================
+  if (resource === 'sessions') {
+    // GET /api/sessions
+    if (routeParts.length === 1 && method === 'GET') {
       const sessions = await readJson('teaching_sessions');
       const startDate = url.searchParams.get('startDate');
       const endDate = url.searchParams.get('endDate');
@@ -271,8 +299,8 @@ async function handleTimetableApi(req, res, url, parts, method) {
       return true;
     }
 
-    // POST /api/timetable/sessions/adjust (TC-04, TC-05, TC-06)
-    if (sub === 'sessions' && parts[3] === 'adjust' && method === 'POST') {
+    // POST /api/sessions/adjust (TC-04, TC-05, TC-06)
+    if (sub === 'adjust' && method === 'POST') {
       const body = await bodyJson(req);
       const { sessionId, adjustmentType, replacementTeacherCode, newDate, reason, performedBy = 'Admin' } = body;
 
@@ -317,8 +345,8 @@ async function handleTimetableApi(req, res, url, parts, method) {
       return true;
     }
 
-    // POST /api/timetable/sessions/bulk-confirm
-    if (sub === 'sessions' && parts[3] === 'bulk-confirm' && method === 'POST') {
+    // POST /api/sessions/bulk-confirm
+    if (sub === 'bulk-confirm' && method === 'POST') {
       const body = await bodyJson(req);
       const { startDate, endDate, performedBy = 'Admin' } = body;
 
@@ -348,9 +376,14 @@ async function handleTimetableApi(req, res, url, parts, method) {
       respond(res, 200, { success: true, message: `Đã xác nhận ${count} tiết học`, confirmedCount: count });
       return true;
     }
+  }
 
-    // GET /api/timetable/duties
-    if (sub === 'duties' && method === 'GET') {
+  // ==========================================
+  // 4. MODULE TRỰC TRƯỜNG (/api/duties hoặc /api/timetable/duties)
+  // ==========================================
+  if (resource === 'duties') {
+    // GET /api/duties
+    if (routeParts.length === 1 && method === 'GET') {
       const duties = await readJson('teacher_duties');
       const startDate = url.searchParams.get('startDate');
       const endDate = url.searchParams.get('endDate');
@@ -364,8 +397,8 @@ async function handleTimetableApi(req, res, url, parts, method) {
       return true;
     }
 
-    // POST /api/timetable/duties
-    if (sub === 'duties' && method === 'POST') {
+    // POST /api/duties
+    if (routeParts.length === 1 && method === 'POST') {
       const body = await bodyJson(req);
       const { date, sessionOfDay, timeRange, teacherCode, dutyType = 'TRUC_TRUONG', unit = 'LUOT', value = 1, notes } = body;
 
@@ -398,9 +431,14 @@ async function handleTimetableApi(req, res, url, parts, method) {
       respond(res, 201, { success: true, data: newDuty });
       return true;
     }
+  }
 
-    // GET /api/timetable/reports/summary (TC-04, TC-05, TC-06, TC-08, TC-12)
-    if (sub === 'reports' && parts[3] === 'summary' && method === 'GET') {
+  // ==========================================
+  // 5. MODULE BÁO CÁO THỐNG KÊ (/api/reports hoặc /api/timetable/reports)
+  // ==========================================
+  if (resource === 'reports') {
+    // GET /api/reports/summary (TC-04, TC-05, TC-06, TC-08, TC-12)
+    if (sub === 'summary' && method === 'GET') {
       const startDate = url.searchParams.get('startDate') || '2026-10-05';
       const endDate = url.searchParams.get('endDate') || '2026-10-11';
       const teacherCode = url.searchParams.get('teacherCode') || undefined;
@@ -427,15 +465,83 @@ async function handleTimetableApi(req, res, url, parts, method) {
       return true;
     }
 
-    // GET /api/timetable/audit-logs
-    if (sub === 'audit-logs' && method === 'GET') {
+    // GET /api/reports/export (Xuất file CSV/Excel UTF-8 có BOM)
+    if (sub === 'export' && method === 'GET') {
+      const startDate = url.searchParams.get('startDate') || '2026-10-05';
+      const endDate = url.searchParams.get('endDate') || '2026-10-11';
+      const teacherCode = url.searchParams.get('teacherCode') || undefined;
+      const department = url.searchParams.get('department') || undefined;
+
+      const [teachers, sessions, duties] = await Promise.all([
+        readJson('teachers'),
+        readJson('teaching_sessions'),
+        readJson('teacher_duties')
+      ]);
+
+      const result = calculateWorkload(
+        Array.isArray(teachers) ? teachers : [],
+        Array.isArray(sessions) ? sessions : [],
+        Array.isArray(duties) ? duties : [],
+        { startDate, endDate, teacherCode, department }
+      );
+
+      const headers = [
+        'Mã GV',
+        'Họ và tên',
+        'Tổ bộ môn',
+        'Phân công (TKB)',
+        'Thực dạy',
+        'Nghỉ (Chưa dạy)',
+        'Được dạy thay',
+        'Dạy thay người khác',
+        'Dạy bù',
+        'Sinh hoạt lớp (SHL)',
+        'Trực trường (lượt)',
+        'Chênh lệch (+/-)'
+      ];
+
+      const rows = (result.summary || []).map(r => [
+        `"${r.teacherCode}"`,
+        `"${r.fullName}"`,
+        `"${r.department || ''}"`,
+        r.assignedPeriods,
+        r.actualTaughtPeriods,
+        r.absencePeriods,
+        r.substituteTakenPeriods,
+        r.substituteGivenPeriods,
+        r.makeupPeriods,
+        r.homeroomPeriods,
+        r.dutyCount,
+        r.difference
+      ]);
+
+      const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(row => row.join(','))].join('\r\n');
+      const origin = req.headers.origin || '*';
+      res.writeHead(200, {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="bao-cao-gio-day-${startDate}-${endDate}.csv"`,
+        'Access-Control-Allow-Origin': origin,
+        'Cache-Control': 'no-store'
+      });
+      res.end(csvContent);
+      return true;
+    }
+  }
+
+  // ==========================================
+  // 6. MODULE NHẬT KÝ THAO TÁC (/api/audit-logs hoặc /api/timetable/audit-logs)
+  // ==========================================
+  if (resource === 'audit-logs') {
+    if (routeParts.length === 1 && method === 'GET') {
       const logs = await readJson('teacher_audit_logs');
       respond(res, 200, { success: true, data: Array.isArray(logs) ? logs : [] });
       return true;
     }
   }
 
-  return false;
+  // Nếu request có prefix /api/timetable/... hoặc resource thuộc danh sách timetable nhưng không đúng method
+  respond(res, 404, { success: false, error: 'Endpoint thời khóa biểu không tồn tại' });
+  return true;
 }
 
 module.exports = { handleTimetableApi };
