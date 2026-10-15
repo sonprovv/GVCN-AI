@@ -6,8 +6,17 @@ const {
   buildTeacherLookup,
   matchTeacher,
   parseTeachersData,
-  validateAndMapTimetableEntries
+  validateAndMapTimetableEntries,
+  findClosureForSession
 } = require('../services/timetableEngine');
+
+const CLOSURE_SESSIONS = ['MORNING', 'AFTERNOON', 'ALL_DAY'];
+const CLOSURE_SCOPES = ['SCHOOL', 'GRADE', 'CLASS'];
+
+async function readClosures() {
+  const list = await readJson('school_closures');
+  return Array.isArray(list) ? list : [];
+}
 
 function respond(res, status, body, extraHeaders = {}) {
   const origin = res.req?.headers?.origin || '*';
@@ -73,10 +82,10 @@ async function handleTimetableApi(req, res, url, parts, method) {
     routeParts = routeParts.slice(1); // bỏ prefix 'timetable' nếu có
   }
 
-  const resource = routeParts[0]; // 'teachers', 'timetables', 'sessions', 'duties', 'reports', 'audit-logs', 'health'
+  const resource = routeParts[0]; // 'teachers', 'timetables', 'sessions', 'duties', 'closures', 'reports', 'audit-logs', 'health'
   const sub = routeParts[1];
 
-  const TIMETABLE_RESOURCES = ['teachers', 'timetables', 'sessions', 'duties', 'reports', 'audit-logs', 'health'];
+  const TIMETABLE_RESOURCES = ['teachers', 'timetables', 'sessions', 'duties', 'closures', 'reports', 'audit-logs', 'health'];
   const isTimetableRoute = parts[1] === 'timetable' || TIMETABLE_RESOURCES.includes(resource);
 
   if (!isTimetableRoute) {
@@ -295,6 +304,12 @@ async function handleTimetableApi(req, res, url, parts, method) {
         list = list.filter(s => s.assignedTeacherCode === teacherCode || s.actualTeacherCode === teacherCode);
       }
 
+      const closures = await readClosures();
+      list = list.map(s => {
+        const closure = findClosureForSession(s, closures);
+        return closure ? { ...s, closure: { id: closure.id, reason: closure.reason || null } } : s;
+      });
+
       respond(res, 200, { success: true, data: list });
       return true;
     }
@@ -309,11 +324,15 @@ async function handleTimetableApi(req, res, url, parts, method) {
         return true;
       }
 
+      const closures = await readClosures();
       let updated = null;
       await updateJson('teaching_sessions', (sessions = []) => {
         const arr = Array.isArray(sessions) ? sessions : [];
         const index = arr.findIndex(s => s.id === sessionId);
         if (index === -1) throw new Error('Không tìm thấy tiết học này');
+        if (adjustmentType !== 'MAKEUP' && findClosureForSession(arr[index], closures)) {
+          throw new Error('Tiết này thuộc lịch nghỉ của trường, chỉ có thể chuyển sang ngày khác để dạy bù');
+        }
 
         const s = { ...arr[index] };
         s.adjustmentType = adjustmentType;
@@ -355,12 +374,18 @@ async function handleTimetableApi(req, res, url, parts, method) {
         return true;
       }
 
+      const closures = await readClosures();
       let count = 0;
+      let skippedClosed = 0;
       await updateJson('teaching_sessions', (sessions = []) => {
         const arr = Array.isArray(sessions) ? sessions : [];
         for (let i = 0; i < arr.length; i++) {
           const s = arr[i];
           if (s.date >= startDate && s.date <= endDate) {
+            if (findClosureForSession(s, closures)) {
+              skippedClosed++;
+              continue;
+            }
             if (s.status === 'PENDING' || !s.status) {
               s.status = 'CONFIRMED';
               s.actualTeacherCode = s.assignedTeacherCode;
@@ -373,7 +398,8 @@ async function handleTimetableApi(req, res, url, parts, method) {
       });
 
       await appendAuditLog('CONFIRM', 'SESSION', `Xác nhận hàng loạt ${count} tiết từ ${startDate} đến ${endDate}`, performedBy);
-      respond(res, 200, { success: true, message: `Đã xác nhận ${count} tiết học`, confirmedCount: count });
+      const skippedText = skippedClosed > 0 ? ` (bỏ qua ${skippedClosed} tiết thuộc lịch nghỉ của trường)` : '';
+      respond(res, 200, { success: true, message: `Đã xác nhận ${count} tiết học${skippedText}`, confirmedCount: count, skippedClosedCount: skippedClosed });
       return true;
     }
   }
@@ -434,6 +460,100 @@ async function handleTimetableApi(req, res, url, parts, method) {
   }
 
   // ==========================================
+  // 4b. MODULE LỊCH NGHỈ CỦA TRƯỜNG (/api/closures hoặc /api/timetable/closures)
+  // Nghỉ toàn trường / theo khối / theo lớp một buổi hoặc cả ngày
+  // ==========================================
+  if (resource === 'closures') {
+    // GET /api/closures
+    if (routeParts.length === 1 && method === 'GET') {
+      const startDate = url.searchParams.get('startDate');
+      const endDate = url.searchParams.get('endDate');
+      let list = await readClosures();
+      if (startDate) list = list.filter(c => c.date >= startDate);
+      if (endDate) list = list.filter(c => c.date <= endDate);
+      list = [...list].sort((a, b) => String(b.date).localeCompare(String(a.date)));
+      respond(res, 200, { success: true, data: list });
+      return true;
+    }
+
+    // POST /api/closures
+    if (routeParts.length === 1 && method === 'POST') {
+      const body = await bodyJson(req);
+      const date = String(body.date || '').trim();
+      const sessionOfDay = String(body.sessionOfDay || 'ALL_DAY').trim();
+      const scope = String(body.scope || 'SCHOOL').trim();
+      const reason = String(body.reason || '').trim();
+      const performedBy = body.performedBy || 'Admin';
+      const grades = scope === 'GRADE'
+        ? (Array.isArray(body.grades) ? body.grades : []).map(g => String(g).trim()).filter(Boolean)
+        : [];
+      const classCodes = scope === 'CLASS'
+        ? (Array.isArray(body.classCodes) ? body.classCodes : []).map(c => String(c).trim().toUpperCase()).filter(Boolean)
+        : [];
+
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        respond(res, 400, { success: false, error: 'Ngày nghỉ không hợp lệ' });
+        return true;
+      }
+      if (!CLOSURE_SESSIONS.includes(sessionOfDay) || !CLOSURE_SCOPES.includes(scope)) {
+        respond(res, 400, { success: false, error: 'Buổi nghỉ hoặc phạm vi nghỉ không hợp lệ' });
+        return true;
+      }
+      if (!reason) {
+        respond(res, 400, { success: false, error: 'Vui lòng nhập lý do nghỉ' });
+        return true;
+      }
+      if (scope === 'GRADE' && grades.length === 0) {
+        respond(res, 400, { success: false, error: 'Chưa chọn khối nghỉ' });
+        return true;
+      }
+      if (scope === 'CLASS' && classCodes.length === 0) {
+        respond(res, 400, { success: false, error: 'Chưa chọn lớp nghỉ' });
+        return true;
+      }
+
+      const newClosure = {
+        id: `closure-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        date,
+        sessionOfDay,
+        scope,
+        grades,
+        classCodes,
+        reason,
+        createdBy: performedBy,
+        createdAt: new Date().toISOString()
+      };
+
+      await updateJson('school_closures', (list = []) => {
+        const arr = Array.isArray(list) ? list : [];
+        arr.push(newClosure);
+        return { data: arr, result: newClosure };
+      });
+
+      await appendAuditLog('CREATE', 'CLOSURE', { date, sessionOfDay, scope, grades, classCodes, reason }, performedBy);
+      respond(res, 201, { success: true, data: newClosure });
+      return true;
+    }
+
+    // DELETE /api/closures/:id
+    if (routeParts.length === 2 && method === 'DELETE') {
+      const id = routeParts[1];
+      let removed = null;
+      await updateJson('school_closures', (list = []) => {
+        const arr = Array.isArray(list) ? list : [];
+        const index = arr.findIndex(c => c.id === id);
+        if (index === -1) throw new Error('Không tìm thấy lịch nghỉ này');
+        removed = arr.splice(index, 1)[0];
+        return { data: arr, result: removed };
+      });
+
+      await appendAuditLog('DELETE', 'CLOSURE', { id, date: removed.date, reason: removed.reason });
+      respond(res, 200, { success: true, data: removed });
+      return true;
+    }
+  }
+
+  // ==========================================
   // 5. MODULE BÁO CÁO THỐNG KÊ (/api/reports hoặc /api/timetable/reports)
   // ==========================================
   if (resource === 'reports') {
@@ -444,17 +564,19 @@ async function handleTimetableApi(req, res, url, parts, method) {
       const teacherCode = url.searchParams.get('teacherCode') || undefined;
       const department = url.searchParams.get('department') || undefined;
 
-      const [teachers, sessions, duties] = await Promise.all([
+      const [teachers, sessions, duties, closures] = await Promise.all([
         readJson('teachers'),
         readJson('teaching_sessions'),
-        readJson('teacher_duties')
+        readJson('teacher_duties'),
+        readClosures()
       ]);
 
       const result = calculateWorkload(
         Array.isArray(teachers) ? teachers : [],
         Array.isArray(sessions) ? sessions : [],
         Array.isArray(duties) ? duties : [],
-        { startDate, endDate, teacherCode, department }
+        { startDate, endDate, teacherCode, department },
+        closures
       );
 
       respond(res, 200, {
@@ -472,17 +594,19 @@ async function handleTimetableApi(req, res, url, parts, method) {
       const teacherCode = url.searchParams.get('teacherCode') || undefined;
       const department = url.searchParams.get('department') || undefined;
 
-      const [teachers, sessions, duties] = await Promise.all([
+      const [teachers, sessions, duties, closures] = await Promise.all([
         readJson('teachers'),
         readJson('teaching_sessions'),
-        readJson('teacher_duties')
+        readJson('teacher_duties'),
+        readClosures()
       ]);
 
       const result = calculateWorkload(
         Array.isArray(teachers) ? teachers : [],
         Array.isArray(sessions) ? sessions : [],
         Array.isArray(duties) ? duties : [],
-        { startDate, endDate, teacherCode, department }
+        { startDate, endDate, teacherCode, department },
+        closures
       );
 
       const headers = [
@@ -495,6 +619,7 @@ async function handleTimetableApi(req, res, url, parts, method) {
         'Được dạy thay',
         'Dạy thay người khác',
         'Dạy bù',
+        'Nghỉ theo lịch trường',
         'Sinh hoạt lớp (SHL)',
         'Trực trường (lượt)',
         'Chênh lệch (+/-)'
@@ -510,6 +635,7 @@ async function handleTimetableApi(req, res, url, parts, method) {
         r.substituteTakenPeriods,
         r.substituteGivenPeriods,
         r.makeupPeriods,
+        r.closedPeriods,
         r.homeroomPeriods,
         r.dutyCount,
         r.difference

@@ -134,7 +134,37 @@ function validateAndMapTimetableEntries(rawEntries, lookup) {
   return { entries, totalValid, totalWarnings, uniqueSlotKeys };
 }
 
-function calculateWorkload(teachers, sessions, duties, filters = {}) {
+/**
+ * Lịch nghỉ của nhà trường (nghỉ toàn trường / theo khối / theo lớp).
+ * closure = { date, sessionOfDay: 'MORNING'|'AFTERNOON'|'ALL_DAY', scope: 'SCHOOL'|'GRADE'|'CLASS', grades: [], classCodes: [] }
+ */
+function getClassGrade(classCode) {
+  const m = String(classCode || '').trim().match(/^(\d{1,2})/);
+  return m ? m[1] : null;
+}
+
+function closureMatchesSession(closure, session) {
+  if (!closure || !session) return false;
+  if (closure.date !== session.date) return false;
+  if (closure.sessionOfDay && closure.sessionOfDay !== 'ALL_DAY' && closure.sessionOfDay !== session.sessionOfDay) return false;
+  const scope = closure.scope || 'SCHOOL';
+  if (scope === 'GRADE') {
+    return (closure.grades || []).map(String).includes(getClassGrade(session.classCode));
+  }
+  if (scope === 'CLASS') {
+    const code = String(session.classCode || '').trim().toUpperCase();
+    return (closure.classCodes || []).some(c => String(c).trim().toUpperCase() === code);
+  }
+  return true;
+}
+
+function findClosureForSession(session, closures) {
+  // Tiết đã được chuyển sang ngày khác để dạy bù thì vẫn tính như dạy bù bình thường
+  if (session.status === 'MAKEUP' && session.actualDate && session.actualDate !== session.date) return null;
+  return (closures || []).find(c => closureMatchesSession(c, session)) || null;
+}
+
+function calculateWorkload(teachers, sessions, duties, filters = {}, closures = []) {
   const { startDate = '1970-01-01', endDate = '2099-12-31', teacherCode, department } = filters;
 
   const result = {
@@ -159,11 +189,21 @@ function calculateWorkload(teachers, sessions, duties, filters = {}) {
       makeupSessions: [],
       homeroomSessions: [],
       pendingSessions: [],
+      closedSessions: [],
       duties: []
     };
 
     // 1. Phân công theo TKB: Ngày phân công trong [startDate, endDate]
     for (const s of (sessions || [])) {
+      // 0. Tiết rơi vào lịch nghỉ của trường: không tính phân công, vắng, dự kiến hay thực dạy
+      const closure = findClosureForSession(s, closures);
+      if (closure) {
+        if (s.date >= startDate && s.date <= endDate && s.assignedTeacherCode === code) {
+          drill.closedSessions.push({ ...s, closureId: closure.id, closureReason: closure.reason || null });
+        }
+        continue;
+      }
+
       if (s.date >= startDate && s.date <= endDate) {
         if (s.assignedTeacherCode === code) {
           drill.assignedSessions.push(s);
@@ -230,7 +270,8 @@ function calculateWorkload(teachers, sessions, duties, filters = {}) {
       makeupPeriods: drill.makeupSessions.length,
       homeroomPeriods: drill.homeroomSessions.length,
       dutyCount: dutyTotal,
-      pendingPeriods: drill.pendingSessions.length
+      pendingPeriods: drill.pendingSessions.length,
+      closedPeriods: drill.closedSessions.length
     };
 
     result.summary.push(summaryItem);
@@ -245,5 +286,7 @@ module.exports = {
   matchTeacher,
   parseTeachersData,
   validateAndMapTimetableEntries,
-  calculateWorkload
+  calculateWorkload,
+  closureMatchesSession,
+  findClosureForSession
 };

@@ -11,6 +11,8 @@ test('password + session cookie protects cloud-ready API', async () => {
     for (const file of await fs.readdir(path.join(__dirname, '../backend/data')))
       await fs.copyFile(path.join(__dirname, '../backend/data', file), path.join(temp, file));
     process.env.GVCN_DATA_DIR = temp;
+    // Không nạp DATABASE_URL thật từ .env khi chạy test
+    process.env.DATABASE_URL = '';
     process.env.APP_PASSWORD = 'temporary-test-password';
     process.env.SESSION_SECRET = 'temporary-test-signing-secret-with-minimum-length';
     const { server } = require('../backend/server');

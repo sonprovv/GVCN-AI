@@ -13,6 +13,8 @@ test('GVCN REST API + JSON persistence', async () => {
       await fs.copyFile(path.join(__dirname, '../backend/data', file), path.join(temp, file));
     }
     process.env.GVCN_DATA_DIR = temp;
+    // Không nạp DATABASE_URL thật từ .env khi chạy test
+    process.env.DATABASE_URL = '';
     const { server } = require('../backend/server');
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
     const base = `http://127.0.0.1:${server.address().port}`;

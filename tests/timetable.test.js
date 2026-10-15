@@ -13,7 +13,8 @@ test('Timetable API + Calculation Engine on Botkeep backend', async () => {
     }
     process.env.GVCN_DATA_DIR = temp;
     // Chạy chế độ file cục bộ để cô lập test
-    delete process.env.DATABASE_URL;
+    // Để chuỗi rỗng (không xóa) để server không nạp lại DATABASE_URL thật từ .env
+    process.env.DATABASE_URL = '';
 
     const { server } = require('../backend/server');
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
