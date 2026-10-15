@@ -10,6 +10,42 @@ const {
   findClosureForSession
 } = require('../services/timetableEngine');
 
+const {
+  MAX_GENERATE_DAYS,
+  isDateStr,
+  daysBetween,
+  describeVersions,
+  buildExpectedSessions,
+  planSessionSync,
+  applySessionSync,
+  summarizePlan
+} = require('../services/timetableVersions');
+
+/**
+ * Đồng bộ tiết học trong [startDate, endDate] theo TKB đang hiệu lực của từng lớp.
+ * Tiết đã xác nhận/điều chỉnh giữ nguyên; chỉ tiết chưa xác nhận được tạo lại.
+ */
+async function syncSessionsWithTimetables(startDate, endDate, { dryRun = false } = {}) {
+  const [versions, teachers] = await Promise.all([readJson('timetables'), readJson('teachers')]);
+  const { expected, stats } = buildExpectedSessions(
+    Array.isArray(versions) ? versions : [],
+    Array.isArray(teachers) ? teachers : [],
+    startDate,
+    endDate
+  );
+
+  if (dryRun) {
+    const sessions = await readJson('teaching_sessions');
+    return summarizePlan(planSessionSync(Array.isArray(sessions) ? sessions : [], expected, startDate, endDate), stats);
+  }
+
+  return updateJson('teaching_sessions', (sessions = []) => {
+    const arr = Array.isArray(sessions) ? sessions : [];
+    const plan = planSessionSync(arr, expected, startDate, endDate);
+    return { data: applySessionSync(arr, plan), result: summarizePlan(plan, stats) };
+  });
+}
+
 const CLOSURE_SESSIONS = ['MORNING', 'AFTERNOON', 'ALL_DAY'];
 const CLOSURE_SCOPES = ['SCHOOL', 'GRADE', 'CLASS'];
 
@@ -228,7 +264,36 @@ async function handleTimetableApi(req, res, url, parts, method) {
     // GET /api/timetables
     if (routeParts.length === 1 && method === 'GET') {
       const list = await readJson('timetables');
-      respond(res, 200, { success: true, data: Array.isArray(list) ? list : [] });
+      const today = url.searchParams.get('today');
+      const versions = Array.isArray(list) ? list : [];
+      const data = isDateStr(today) ? describeVersions(versions, today) : describeVersions(versions);
+      respond(res, 200, { success: true, data });
+      return true;
+    }
+
+    // POST /api/timetables/generate-sessions: sinh / tạo lại tiết học theo TKB đang hiệu lực
+    if (sub === 'generate-sessions' && method === 'POST') {
+      const body = await bodyJson(req);
+      const startDate = String(body.startDate || '').trim();
+      const endDate = String(body.endDate || '').trim();
+      const dryRun = body.dryRun === true;
+
+      if (!isDateStr(startDate) || !isDateStr(endDate) || startDate > endDate) {
+        respond(res, 400, { success: false, error: 'Khoảng ngày không hợp lệ' });
+        return true;
+      }
+      if (daysBetween(startDate, endDate) + 1 > MAX_GENERATE_DAYS) {
+        respond(res, 400, { success: false, error: `Mỗi lần chỉ sinh tối đa ${MAX_GENERATE_DAYS} ngày` });
+        return true;
+      }
+
+      const summary = await syncSessionsWithTimetables(startDate, endDate, { dryRun });
+      if (!dryRun) {
+        await appendAuditLog('GENERATE', 'SESSION', {
+          startDate, endDate, created: summary.created, updated: summary.updated, removed: summary.removed
+        }, body.performedBy || 'Admin');
+      }
+      respond(res, 200, { success: true, dryRun, data: summary });
       return true;
     }
 
@@ -241,6 +306,10 @@ async function handleTimetableApi(req, res, url, parts, method) {
 
       if (!code || !name || !validFrom) {
         respond(res, 400, { success: false, error: 'Thiếu thông tin bắt buộc của phiên bản TKB' });
+        return true;
+      }
+      if (!isDateStr(validFrom) || (body.validTo && !isDateStr(String(body.validTo).trim()))) {
+        respond(res, 400, { success: false, error: 'Ngày hiệu lực phải có dạng YYYY-MM-DD' });
         return true;
       }
 
@@ -258,6 +327,7 @@ async function handleTimetableApi(req, res, url, parts, method) {
         validTo: body.validTo ? String(body.validTo).trim() : null,
         description: body.description ? String(body.description).trim() : null,
         isActive: true,
+        createdAt: new Date().toISOString(),
         entries: Array.isArray(body.entries) ? body.entries : []
       };
 
@@ -267,15 +337,21 @@ async function handleTimetableApi(req, res, url, parts, method) {
         return { data: arr, result: newVersion };
       });
 
+      // TKB mới: tạo lại các tiết chưa xác nhận đã sinh từ ngày hiệu lực trở đi
+      let regenerated = null;
       if (newVersion.entries.length > 0) {
-        await updateJson('teaching_sessions', (sessions = []) => {
-          const sArr = Array.isArray(sessions) ? sessions : [];
-          return { data: sArr, result: true };
-        });
+        const sessions = await readJson('teaching_sessions');
+        const lastDate = (Array.isArray(sessions) ? sessions : [])
+          .reduce((max, s) => (s.date > max ? s.date : max), '');
+        if (lastDate >= validFrom) {
+          regenerated = await syncSessionsWithTimetables(validFrom, lastDate);
+          regenerated.range = { startDate: validFrom, endDate: lastDate };
+        }
       }
 
       await appendAuditLog('CREATE', 'TIMETABLE', `Tạo phiên bản TKB ${newVersion.code}`);
-      respond(res, 201, { success: true, data: newVersion });
+      const [described] = describeVersions([newVersion]);
+      respond(res, 201, { success: true, data: { ...described, entries: undefined, entryCount: newVersion.entries.length }, regenerated });
       return true;
     }
   }
