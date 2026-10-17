@@ -46,6 +46,8 @@ async function syncSessionsWithTimetables(startDate, endDate, { dryRun = false }
   });
 }
 
+const { suggestTeacherSubjects } = require('../services/teacherSubjects');
+
 const CLOSURE_SESSIONS = ['MORNING', 'AFTERNOON', 'ALL_DAY'];
 const CLOSURE_SCOPES = ['SCHOOL', 'GRADE', 'CLASS'];
 
@@ -210,6 +212,104 @@ async function handleTimetableApi(req, res, url, parts, method) {
 
       await appendAuditLog('CREATE', 'TEACHER', { code: newTeacher.code, fullName: newTeacher.fullName });
       respond(res, 201, { success: true, data: newTeacher });
+      return true;
+    }
+
+    // GET /api/teachers/subject-suggestions: môn & tổ suy ra từ TKB đang áp dụng
+    if (sub === 'subject-suggestions' && method === 'GET') {
+      const [teachers, versions] = await Promise.all([readJson('teachers'), readJson('timetables')]);
+      const data = suggestTeacherSubjects(
+        Array.isArray(teachers) ? teachers : [],
+        Array.isArray(versions) ? versions : []
+      );
+      respond(res, 200, { success: true, data });
+      return true;
+    }
+
+    // POST /api/teachers/apply-subjects: cập nhật môn & tổ theo gợi ý cho các mã được chọn
+    if (sub === 'apply-subjects' && method === 'POST') {
+      const body = await bodyJson(req);
+      const codes = new Set((Array.isArray(body.codes) ? body.codes : []).map(c => String(c).trim().toUpperCase()));
+      if (codes.size === 0) {
+        respond(res, 400, { success: false, error: 'Chưa chọn giáo viên cần cập nhật' });
+        return true;
+      }
+
+      const versions = await readJson('timetables');
+      const changes = [];
+      await updateJson('teachers', (list = []) => {
+        const arr = Array.isArray(list) ? list : [];
+        const byCode = new Map(
+          suggestTeacherSubjects(arr, Array.isArray(versions) ? versions : []).map(x => [x.code, x])
+        );
+        const next = arr.map(t => {
+          const sug = byCode.get(t.code);
+          if (!codes.has(String(t.code).toUpperCase()) || !sug || !sug.suggested) return t;
+          const updated = {
+            ...t,
+            subject: sug.suggested.subject,
+            department: sug.suggested.department || t.department || null
+          };
+          changes.push({
+            code: t.code,
+            from: { subject: t.subject || null, department: t.department || null },
+            to: { subject: updated.subject, department: updated.department }
+          });
+          return updated;
+        });
+        return { data: next, result: changes };
+      });
+
+      await appendAuditLog('UPDATE', 'TEACHER', { action: 'apply-subjects', count: changes.length, changes: changes.slice(0, 100) }, body.performedBy || 'Admin');
+      respond(res, 200, { success: true, updated: changes.length, data: changes });
+      return true;
+    }
+
+    // PATCH /api/teachers/:code: sửa thông tin một giáo viên (không đổi mã)
+    if (routeParts.length === 2 && method === 'PATCH') {
+      const code = decodeURIComponent(routeParts[1]).trim().toUpperCase();
+      const body = await bodyJson(req);
+      const optional = v => (v === undefined ? undefined : (String(v || '').trim() || null));
+      const patch = {};
+      if (body.fullName !== undefined) {
+        const fullName = String(body.fullName || '').trim();
+        if (!fullName) {
+          respond(res, 400, { success: false, error: 'Họ tên không được để trống' });
+          return true;
+        }
+        patch.fullName = fullName;
+      }
+      for (const key of ['department', 'subject']) {
+        if (body[key] !== undefined) patch[key] = optional(body[key]);
+      }
+      if (body.homeroomClass !== undefined) {
+        const homeroom = optional(body.homeroomClass);
+        if (homeroom && !/^\d{1,2}[A-Za-z]\d{0,2}$/.test(homeroom)) {
+          respond(res, 400, { success: false, error: 'Lớp chủ nhiệm phải có dạng như 10A1' });
+          return true;
+        }
+        patch.homeroomClass = homeroom ? homeroom.toUpperCase() : null;
+      }
+      if (body.aliases !== undefined) {
+        const raw = Array.isArray(body.aliases) ? body.aliases : String(body.aliases || '').split(/[,;|]/);
+        patch.aliases = raw.map(a => String(a).trim()).filter(Boolean);
+      }
+      if (body.isActive !== undefined) patch.isActive = body.isActive !== false;
+
+      let before = null;
+      let updated = null;
+      await updateJson('teachers', (list = []) => {
+        const arr = Array.isArray(list) ? list : [];
+        const index = arr.findIndex(t => String(t.code).toUpperCase() === code);
+        if (index === -1) throw new Error(`Không tìm thấy giáo viên ${code}`);
+        before = arr[index];
+        updated = { ...before, ...patch };
+        arr[index] = updated;
+        return { data: arr, result: updated };
+      });
+
+      await appendAuditLog('UPDATE', 'TEACHER', { code, changes: patch }, body.performedBy || 'Admin');
+      respond(res, 200, { success: true, data: updated });
       return true;
     }
 
