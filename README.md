@@ -30,7 +30,7 @@ Với cấu hình production mà thiếu DB/mật khẩu, server **cố ý từ 
 
 ### Dữ liệu lúc khởi tạo
 
-Database mới tự tạo bảng `gvcn_documents` và 8 collection. `classes` nạp lớp minh họa; các collection khác rỗng nếu `SEED_DEMO_DATA=false` (mặc định). Để đưa dữ liệu demo cũ từ `backend/data/*.json` lên PostgreSQL **vào lần khởi tạo đầu tiên**, chọn `SEED_DEMO_DATA=true`. Lần khởi động/deploy tiếp theo sẽ KHÔNG ghi đè dữ liệu hiện có (INSERT ON CONFLICT DO NOTHING).
+Database mới tự tạo 2 bảng: `gvcn_class_documents` (classes, students, attendance, subjects, tasks, templates, reports, messages, cloud_rooms, duty, classTables) và `gvcn_timetable_documents` (teachers, timetables, teaching_sessions, teacher_duties, teacher_audit_logs, school_closures). `classes` nạp lớp minh họa; các collection khác rỗng nếu `SEED_DEMO_DATA=false` (mặc định). Để đưa dữ liệu demo cũ từ `backend/data/*.json` lên PostgreSQL **vào lần khởi tạo đầu tiên**, chọn `SEED_DEMO_DATA=true`. Lần khởi động/deploy tiếp theo sẽ KHÔNG ghi đè dữ liệu hiện có (INSERT ON CONFLICT DO NOTHING).
 
 ### Cấu trúc
 

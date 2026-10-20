@@ -11,12 +11,13 @@ test('Postgres JSONB adapter seeds only when absent, writes via transaction, pre
   class Pool {
     async query(sql, params=[]) {
       events.push(sql.split(' ')[0]);
-      if (sql.startsWith('INSERT INTO gvcn_documents')) {
+      if (sql.startsWith('INSERT INTO public.gvcn_')) {
         if (!data.has(params[0])) data.set(params[0], JSON.parse(params[1]));
         return {rows:[]};
       }
       if (sql.startsWith('SELECT payload')) return {rows: data.has(params[0]) ? [{payload:structuredClone(data.get(params[0]))}] : []};
-      if (sql.startsWith('UPDATE gvcn_documents')) {data.set(params[0], JSON.parse(params[1])); return {rows:[]};}
+      if (sql.startsWith('UPDATE public.gvcn_')) {data.set(params[0], JSON.parse(params[1])); return {rows:[]};}
+      if (sql.includes('to_regclass')) return {rows:[{t:null}]};
       return {rows:[{ok:1}]};
     }
     async connect() { return { query:this.query.bind(this), release() {} }; }

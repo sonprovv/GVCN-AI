@@ -22,7 +22,8 @@ Botkeep Domains (HTTPS) -> Node.js / SERVER_PORT / HOST=0.0.0.0
                                                       v
                                             PostgreSQL (JSONB, botkeep database)
                                                       |
-                                            gvcn_documents(name,payload)
+                                 gvcn_class_documents(name,payload) -- lớp/học sinh/điểm danh/...
+                                 gvcn_timetable_documents(name,payload) -- GVCN/TKB/tiết dạy/...
 
 Local dev khi DATABASE_URL không tồn tại: backend/storage/jsonStore.js -> backend/data/*.json
 ```
@@ -36,15 +37,26 @@ Local dev khi DATABASE_URL không tồn tại: backend/storage/jsonStore.js -> b
 
 ### Schema SQL (backend sẽ tự tạo)
 
+Dữ liệu được chia thành 2 bảng theo nhóm nghiệp vụ (xem `backend/storage/schema.js`):
+
 ```sql
-CREATE TABLE IF NOT EXISTS gvcn_documents (
+CREATE TABLE IF NOT EXISTS gvcn_class_documents (
+  name TEXT PRIMARY KEY,
+  payload JSONB NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS gvcn_timetable_documents (
   name TEXT PRIMARY KEY,
   payload JSONB NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 ```
 
-Các khóa `name`: `classes`, `students`, `attendance`, `subjects`, `tasks`, `templates`, `reports`, `messages`.
+- `gvcn_class_documents` (nhóm "lớp"): `classes`, `students`, `attendance`, `subjects`, `tasks`, `templates`, `reports`, `messages`, `cloud_rooms`, `duty`, `classTables`.
+- `gvcn_timetable_documents` (nhóm "thời khóa biểu/GVCN"): `teachers`, `timetables`, `teaching_sessions`, `teacher_duties`, `teacher_audit_logs`, `school_closures`.
+
+Khi khởi động, nếu còn bảng `gvcn_documents` cũ (trước khi tách), backend tự sao chép dữ liệu còn thiếu sang 2 bảng trên (không xóa bảng cũ).
 
 ### Payload mẫu
 
@@ -65,7 +77,7 @@ Khi A điểm danh và bấm Lưu:
 1. Browser gửi `PUT /api/attendance/2026-10-08` kèm JSON.
 2. Node.js xác thực cookie, kiểm tra Origin, định dạng, mã học sinh, số bản ghi và trạng thái.
 3. Storage adapter bắt đầu transaction PostgreSQL.
-4. `SELECT payload FROM gvcn_documents WHERE name='attendance' FOR UPDATE` khóa hàng dữ liệu.
+4. `SELECT payload FROM gvcn_class_documents WHERE name='attendance' FOR UPDATE` khóa hàng dữ liệu.
 5. Sửa session theo lớp + ngày rồi `UPDATE ... SET payload=$2::jsonb`.
 6. `COMMIT`, API trả `200`. B mở cùng URL và tải trang sẽ nhận bản cập nhật mới.
 

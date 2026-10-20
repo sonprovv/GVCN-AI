@@ -32,7 +32,9 @@ async function seed() {
 
   try {
     await client.query('BEGIN');
-    await client.query(`CREATE TABLE IF NOT EXISTS gvcn_documents (
+    // COLLECTIONS ở trên đều là dữ liệu nhóm "lớp" nên nạp vào gvcn_class_documents.
+    const TABLE = 'gvcn_class_documents';
+    await client.query(`CREATE TABLE IF NOT EXISTS ${TABLE} (
       name TEXT PRIMARY KEY,
       payload JSONB NOT NULL,
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -44,7 +46,7 @@ async function seed() {
       const json = JSON.parse(raw);
 
       await client.query(
-        `INSERT INTO gvcn_documents (name, payload, updated_at)
+        `INSERT INTO ${TABLE} (name, payload, updated_at)
          VALUES ($1, $2::jsonb, NOW())
          ON CONFLICT (name) DO UPDATE
          SET payload = EXCLUDED.payload, updated_at = NOW()`,
@@ -61,7 +63,7 @@ async function seed() {
 
     await client.query('COMMIT');
     console.log('\n--- TỔNG KẾT DỮ LIỆU ĐÃ NẠP TRÊN BOTKEEP ---');
-    const res = await client.query('SELECT name, length(payload::text) as size_bytes, updated_at FROM gvcn_documents ORDER BY name');
+    const res = await client.query(`SELECT name, length(payload::text) as size_bytes, updated_at FROM ${TABLE} ORDER BY name`);
     for (const row of res.rows) {
       console.log(`- ${row.name.padEnd(14)} : ${row.size_bytes.toString().padStart(6)} bytes | ${row.updated_at.toISOString()}`);
     }

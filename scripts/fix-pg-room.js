@@ -14,7 +14,7 @@ const defaultTeams = [
 ];
 
 async function fixPostgresRoom() {
-  const res = await pool.query("SELECT payload FROM gvcn_documents WHERE name = 'cloud_rooms'");
+  const res = await pool.query("SELECT payload FROM gvcn_class_documents WHERE name = 'cloud_rooms'");
   const rooms = res.rows[0]?.payload || {};
   const room12A5 = rooms['12A5'] || {};
   const curData = room12A5.data || {};
@@ -59,7 +59,7 @@ async function fixPostgresRoom() {
     updatedAt: new Date().toISOString()
   };
 
-  await pool.query("UPDATE gvcn_documents SET payload = $1::jsonb, updated_at = NOW() WHERE name = 'cloud_rooms'", [JSON.stringify(rooms)]);
+  await pool.query("UPDATE gvcn_class_documents SET payload = $1::jsonb, updated_at = NOW() WHERE name = 'cloud_rooms'", [JSON.stringify(rooms)]);
   console.log('Successfully updated cloud_rooms in PostgreSQL with complete data schema!');
   console.log('Students count:', fullData.students.length);
   console.log('Teams count:', fullData.teams.length);

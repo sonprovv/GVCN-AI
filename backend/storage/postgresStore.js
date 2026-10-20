@@ -2,7 +2,32 @@
 // Document-style storage in PostgreSQL: retain the old JSON payloads in durable JSONB rows.
 const fs = require('node:fs/promises');
 const path = require('node:path');
-const { ALLOWED } = require('./schema');
+const { ALLOWED, CLASS_GROUP, TIMETABLE_GROUP, CLASS_TABLE, TIMETABLE_TABLE, tableFor } = require('./schema');
+const DOCUMENT_TABLES = [CLASS_TABLE, TIMETABLE_TABLE];
+const LEGACY_TABLE = 'gvcn_documents';
+
+const CREATE_TABLE_SQL = (table) => `CREATE TABLE IF NOT EXISTS public.${table} (
+  name TEXT PRIMARY KEY,
+  payload JSONB NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+)`;
+
+// Dữ liệu cũ (trước khi tách bảng) nằm hết trong public.gvcn_documents.
+// Nếu bảng đó còn tồn tại, sao chép các dòng chưa có sang 2 bảng mới, không xóa bảng cũ.
+async function migrateLegacyDocuments(db) {
+  const check = await db.query(`SELECT to_regclass('public.${LEGACY_TABLE}') as t`);
+  if (!check.rows[0]?.t) return;
+  const groups = { [CLASS_TABLE]: [...CLASS_GROUP], [TIMETABLE_TABLE]: [...TIMETABLE_GROUP] };
+  for (const table of DOCUMENT_TABLES) {
+    await db.query(
+      `INSERT INTO public.${table}(name, payload, updated_at)
+       SELECT l.name, l.payload, l.updated_at FROM public.${LEGACY_TABLE} l
+       WHERE l.name = ANY($1)
+       ON CONFLICT (name) DO NOTHING`,
+      [groups[table]]
+    );
+  }
+}
 
 let pool;
 let initialized;
@@ -214,14 +239,11 @@ async function initializeStorage() {
       if (!pool) throw lastError;
 
       const db = pool;
-      await db.query(`CREATE TABLE IF NOT EXISTS public.gvcn_documents (
-        name TEXT PRIMARY KEY,
-        payload JSONB NOT NULL,
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )`);
+      for (const table of DOCUMENT_TABLES) await db.query(CREATE_TABLE_SQL(table));
+      await migrateLegacyDocuments(db);
       for (const name of ALLOWED) {
         const payload = await seedValue(name);
-        await db.query('INSERT INTO public.gvcn_documents(name,payload) VALUES ($1,$2::jsonb) ON CONFLICT(name) DO NOTHING', [name, JSON.stringify(payload)]);
+        await db.query(`INSERT INTO public.${tableFor(name)}(name,payload) VALUES ($1,$2::jsonb) ON CONFLICT(name) DO NOTHING`, [name, JSON.stringify(payload)]);
       }
       await db.query('SELECT 1');
     })().catch(error => { initialized = null; throw error; });
@@ -232,11 +254,7 @@ function valid(name) {
   if (!ALLOWED.has(name)) throw new Error('Unknown JSON collection');
 }
 async function ensureSchema(client) {
-  await client.query(`CREATE TABLE IF NOT EXISTS public.gvcn_documents (
-    name TEXT PRIMARY KEY,
-    payload JSONB NOT NULL,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-  )`);
+  for (const table of DOCUMENT_TABLES) await client.query(CREATE_TABLE_SQL(table));
 }
 async function readJson(name) {
   valid(name);
@@ -250,14 +268,15 @@ async function readJson(name) {
     }
   }
   await initializeStorage();
+  const table = tableFor(name);
   const client = await poolFor().connect();
   try {
     await ensureSchema(client);
-    let result = await client.query('SELECT payload FROM public.gvcn_documents WHERE name=$1', [name]);
+    let result = await client.query(`SELECT payload FROM public.${table} WHERE name=$1`, [name]);
     if (!result.rows.length) {
       const payload = await seedValue(name);
-      await client.query('INSERT INTO public.gvcn_documents(name,payload) VALUES ($1,$2::jsonb) ON CONFLICT(name) DO NOTHING', [name, JSON.stringify(payload)]);
-      result = await client.query('SELECT payload FROM public.gvcn_documents WHERE name=$1', [name]);
+      await client.query(`INSERT INTO public.${table}(name,payload) VALUES ($1,$2::jsonb) ON CONFLICT(name) DO NOTHING`, [name, JSON.stringify(payload)]);
+      result = await client.query(`SELECT payload FROM public.${table} WHERE name=$1`, [name]);
     }
     return result.rows[0]?.payload || (name === 'cloud_rooms' ? {} : []);
   } finally {
@@ -277,19 +296,20 @@ async function updateJson(name, mutate) {
     return result;
   }
   await initializeStorage();
+  const table = tableFor(name);
   const client = await poolFor().connect();
   try {
     await client.query('BEGIN');
     await ensureSchema(client);
-    let found = await client.query('SELECT payload FROM public.gvcn_documents WHERE name=$1 FOR UPDATE', [name]);
+    let found = await client.query(`SELECT payload FROM public.${table} WHERE name=$1 FOR UPDATE`, [name]);
     if (!found.rows.length) {
       const initial = await seedValue(name);
-      await client.query('INSERT INTO public.gvcn_documents(name,payload) VALUES ($1,$2::jsonb) ON CONFLICT(name) DO NOTHING', [name, JSON.stringify(initial)]);
-      found = await client.query('SELECT payload FROM public.gvcn_documents WHERE name=$1 FOR UPDATE', [name]);
+      await client.query(`INSERT INTO public.${table}(name,payload) VALUES ($1,$2::jsonb) ON CONFLICT(name) DO NOTHING`, [name, JSON.stringify(initial)]);
+      found = await client.query(`SELECT payload FROM public.${table} WHERE name=$1 FOR UPDATE`, [name]);
     }
     const currentPayload = found.rows[0]?.payload || (name === 'cloud_rooms' ? {} : []);
     const { data, result } = await mutate(currentPayload);
-    await client.query('UPDATE public.gvcn_documents SET payload=$2::jsonb, updated_at=NOW() WHERE name=$1', [name, JSON.stringify(data)]);
+    await client.query(`UPDATE public.${table} SET payload=$2::jsonb, updated_at=NOW() WHERE name=$1`, [name, JSON.stringify(data)]);
     await client.query('COMMIT');
     return result;
   } catch (error) {
@@ -303,13 +323,13 @@ async function health() {
   if (!process.env.DATABASE_URL) return { ok: true, mode: 'local-json' };
   await initializeStorage();
   const res = await poolFor().query(`
-    SELECT 
-      current_database() as db, 
-      current_user as db_user, 
+    SELECT
+      current_database() as db,
+      current_user as db_user,
       current_schema() as db_schema,
       current_setting('search_path') as search_path,
-      (SELECT count(*)::int FROM information_schema.tables WHERE table_name = 'gvcn_documents') as gvcn_table_count,
-      (SELECT string_agg(table_schema || '.' || table_name, ', ') FROM information_schema.tables WHERE table_name = 'gvcn_documents') as gvcn_locations
+      (SELECT count(*)::int FROM information_schema.tables WHERE table_name IN ('${CLASS_TABLE}', '${TIMETABLE_TABLE}')) as gvcn_table_count,
+      (SELECT string_agg(table_schema || '.' || table_name, ', ') FROM information_schema.tables WHERE table_name IN ('${CLASS_TABLE}', '${TIMETABLE_TABLE}')) as gvcn_locations
   `);
   return res.rows[0];
 }

@@ -10,7 +10,7 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
-pool.query("SELECT payload FROM gvcn_documents WHERE name = 'cloud_rooms'")
+pool.query("SELECT payload FROM gvcn_class_documents WHERE name = 'cloud_rooms'")
   .then(res => {
     const payload = res.rows[0]?.payload || {};
     console.log('ROOM KEYS IN BOTKEEP DB:', Object.keys(payload));
